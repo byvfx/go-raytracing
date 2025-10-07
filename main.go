@@ -28,7 +28,7 @@ func main() {
 
 	out, err := os.Create("image.ppm")
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "Error creating file: %v\n", err)
 	}
 	w := bufio.NewWriter(out)
 	defer w.Flush()
