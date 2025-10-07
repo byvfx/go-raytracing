@@ -34,7 +34,7 @@ This implementation follows the "Ray Tracing in One Weekend" tutorial progressio
 
 - [x] Basic image output (PPM format)
 - [x] Progress indicator
-- [ ] Vector math utilities
+- [x] Vector math utilities
 - [ ] Ray class
 - [ ] Simple sphere rendering
 - [ ] Surface normals and shading

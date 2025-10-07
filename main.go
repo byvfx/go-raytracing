@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"go-raytracing/rt"
 	"os"
 	"strings"
 )
@@ -38,14 +39,13 @@ func main() {
 	// image creation loop
 	for j := range imageHeight {
 		for i := range imageWidth {
-			r := float64(i) / float64(imageWidth-1)
-			g := float64(j) / float64(imageHeight-1)
-			b := 0.0
-
-			ir := int(255.999 * r)
-			ig := int(255.999 * g)
-			ib := int(255.999 * b)
-			fmt.Fprintf(w, "%d %d %d\n", ir, ig, ib)
+			color := rt.Color{
+				X: float64(i) / float64(imageWidth-1),
+				Y: float64(j) / float64(imageHeight-1),
+				Z: 0.25,
+			}
+			r, g, b := color.ToRGB(1)
+			fmt.Fprintf(w, "%d %d %d\n", r, g, b)
 		}
 		progressBar(j+1, imageHeight, barWidth)
 	}
