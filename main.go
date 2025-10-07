@@ -35,8 +35,9 @@ func main() {
 
 	fmt.Fprintf(w, "P3\n%d %d\n255\n", imageWidth, imageHeight)
 
-	for j := 0; j < imageHeight; j++ {
-		for i := 0; i < imageWidth; i++ {
+	// image creation loop
+	for j := range imageHeight {
+		for i := range imageWidth {
 			r := float64(i) / float64(imageWidth-1)
 			g := float64(j) / float64(imageHeight-1)
 			b := 0.0
