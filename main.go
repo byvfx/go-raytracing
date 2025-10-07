@@ -13,7 +13,10 @@ func progressBar(done, total, width int) {
 	if filled > width {
 		filled = width
 	}
-	bar := strings.Repeat("#", filled) + strings.Repeat(".", width-filled)
+	bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
+	// happy  little accident
+	//fmt.Fprintln(os.Stderr)
+	//
 	fmt.Fprintf(os.Stderr, "\r[%s] %3.0f%%  scanlines remaining: %d", bar, p*100, total-done)
 }
 
@@ -45,4 +48,6 @@ func main() {
 		}
 		progressBar(j+1, imageHeight, barWidth)
 	}
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stdout, "image written to disk")
 }
