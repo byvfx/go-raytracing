@@ -14,7 +14,7 @@ func progressBar(done, total, width int) {
 		filled = width
 	}
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
-	// happy  little accident
+	// happy  little accident enable to see each progress step
 	//fmt.Fprintln(os.Stderr)
 	//
 	fmt.Fprintf(os.Stderr, "\r[%s] %3.0f%%  scanlines remaining: %d", bar, p*100, total-done)
