@@ -24,9 +24,10 @@ The program will generate an `image.png` file in the same directory.
 
 ## Output
 
-The current implementation generates a 400x225 pixel image (16:9 aspect ratio):
+The current implementation generates a 800x450 pixel image (16:9 aspect ratio):
 
 - A sphere positioned at (0, 0, -1) with radius 0.5
+- A larger ground sphere at (0, -100.5, -1) with radius 100
 - Sky gradient background:
 
 The image is saved as `image.png` in PNG format for easy viewing.
