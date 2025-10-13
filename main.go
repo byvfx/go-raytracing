@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"math"
 	"os"
 	"strings"
 )
@@ -22,40 +23,29 @@ func progressBar(done, total, width int) {
 	fmt.Fprintf(os.Stderr, "\r[%s] %3.0f%%  scanlines remaining: %d", bar, p*100, total-done)
 }
 
-func hitSphere(center rt.Point3, radius float64, r rt.Ray) bool {
-	oc := center.Sub(r.Origin())
-	a := rt.Dot(r.Direction(), r.Direction())
-	b := -2.0 * rt.Dot(r.Direction(), oc)
-	c := rt.Dot(oc, oc) - radius*radius
-	discriminant := b*b - 4*a*c
-	return discriminant >= 0
-}
+func rayColor(r rt.Ray, world rt.Hittable) rt.Color {
+	rec := &rt.HitRecord{}
 
-func rayColor(r rt.Ray) rt.Color {
-	// Check if ray hits the sphere at (0, 0, -1) with radius 0.5
-	if hitSphere(rt.Point3{X: 0, Y: 0, Z: -1}, 0.5, r) {
-		return rt.Color{X: 1, Y: 0, Z: 1}
+	// Check if ray hits any object in the world
+	if world.Hit(r, 0, math.Inf(1), rec) {
+		// Color based on the surface normal
+		return rt.Color{X: rec.Normal.X + 1, Y: rec.Normal.Y + 1, Z: rec.Normal.Z + 1}.Scale(0.5)
 	}
 
 	// Otherwise, render the sky gradient
 	unitDirection := r.Direction().Unit()
 	a := 0.5 * (unitDirection.Y + 1.0)
-	// Blend white and blue based on Y coordinate
-	// Using normalized RGB values (divide by 255)
-	white := rt.Color{X: 255.0 / 255.0, Y: 255.0 / 255.0, Z: 255.0 / 255.0} // RGB(255, 255, 255)
-	blue := rt.Color{X: 45.0 / 255.0, Y: 147.0 / 255.0, Z: 255.0 / 255.0}   // RGB(135, 206, 235) - sky blue
-	return white.Scale(1.0 - a).Add(blue.Scale(a))
 
-	// Original normalized values (commented out):
-	// white := rt.Color{X: 1.0, Y: 1.0, Z: 1.0}
-	// blue := rt.Color{X: 0.5, Y: 0.7, Z: 1.0}
-	// return white.Scale(1.0 - a).Add(blue.Scale(a))
+	// Use the original normalized color values
+	white := rt.Color{X: 1.0, Y: 1.0, Z: 1.0}
+	blue := rt.Color{X: 0.5, Y: 0.7, Z: 1.0}
+	return white.Scale(1.0 - a).Add(blue.Scale(a))
 }
 
 func main() {
 	// Image
 	aspectRatio := 16.0 / 9.0
-	imageWidth := 400
+	imageWidth := 800
 
 	// Calculate the image height, and ensure that it's at least 1.
 	imageHeight := max(int(float64(imageWidth)/aspectRatio), 1)
@@ -81,6 +71,11 @@ func main() {
 		Sub(viewportV.Div(2))
 	pixel00Loc := viewportUpperLeft.Add(pixelDeltaU.Add(pixelDeltaV).Scale(0.5))
 
+	// World - create objects to render
+	world := rt.NewHittableList()
+	world.Add(rt.NewSphere(rt.Point3{X: 0, Y: 0, Z: -1}, 0.5))
+	world.Add(rt.NewSphere(rt.Point3{X: 0, Y: -100.5, Z: -1}, 100))
+
 	// Create image for PNG output
 	img := image.NewRGBA(image.Rect(0, 0, imageWidth, imageHeight))
 
@@ -96,7 +91,7 @@ func main() {
 
 	const barWidth = 40
 
-	for j := 0; j < imageHeight; j++ {
+	for j := range imageHeight {
 		progressBar(j+1, imageHeight, barWidth)
 		for i := range imageWidth {
 			pixelCenter := pixel00Loc.
@@ -105,7 +100,7 @@ func main() {
 			rayDirection := pixelCenter.Sub(cameraCenter)
 			r := rt.NewRay(cameraCenter, rayDirection)
 
-			pixelColor := rayColor(r)
+			pixelColor := rayColor(r, world)
 			rgb_r, rgb_g, rgb_b := pixelColor.ToRGB(1)
 
 			// PNG output

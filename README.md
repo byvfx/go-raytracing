@@ -48,7 +48,7 @@ This implementation follows the "Ray Tracing in One Weekend" tutorial progressio
 - [x] Vector math utilities
 - [x] Ray class
 - [x] Simple sphere rendering
-- [ ] Surface normals and shading
+- [x] Surface normals and shading
 - [ ] Anti-aliasing
 - [ ] Diffuse materials
 - [ ] Metal materials
