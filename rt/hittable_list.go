@@ -1,11 +1,9 @@
 package rt
 
-// HittableList represents a collection of hittable objects
 type HittableList struct {
 	Objects []Hittable
 }
 
-// NewHittableList creates a new empty hittable list
 func NewHittableList() *HittableList {
 	return &HittableList{
 		Objects: make([]Hittable, 0),
@@ -23,7 +21,6 @@ func (hl *HittableList) Clear() {
 }
 
 // Hit implements the Hittable interface for the list
-// It finds the closest hit among all objects in the list
 func (hl *HittableList) Hit(r Ray, rayTMin, rayTMax float64, rec *HitRecord) bool {
 	tempRec := &HitRecord{}
 	hitAnything := false
