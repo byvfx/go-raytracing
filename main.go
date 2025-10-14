@@ -28,7 +28,6 @@ func rayColor(r rt.Ray, world rt.Hittable) rt.Color {
 
 	// Check if ray hits any object in the world
 	if world.Hit(r, 0, math.Inf(1), rec) {
-		// Color based on the surface normal
 		return rt.Color{X: rec.Normal.X + 1, Y: rec.Normal.Y + 1, Z: rec.Normal.Z + 1}.Scale(0.5)
 	}
 
@@ -38,7 +37,7 @@ func rayColor(r rt.Ray, world rt.Hittable) rt.Color {
 
 	// Use the original normalized color values
 	white := rt.Color{X: 1.0, Y: 1.0, Z: 1.0}
-	blue := rt.Color{X: 0.5, Y: 0.7, Z: 1.0}
+	blue := rt.Color{X: 0.1, Y: 0.3, Z: 1.0}
 	return white.Scale(1.0 - a).Add(blue.Scale(a))
 }
 
@@ -50,33 +49,35 @@ func main() {
 	// Calculate the image height, and ensure that it's at least 1.
 	imageHeight := max(int(float64(imageWidth)/aspectRatio), 1)
 
-	// Camera
+	// Camera Time
 	focalLength := 1.0
 	viewportHeight := 2.0
 	viewportWidth := viewportHeight * (float64(imageWidth) / float64(imageHeight))
 	cameraCenter := rt.Point3{X: 0, Y: 0, Z: 0}
 
-	// Calculate the vectors across the horizontal and down the vertical viewport edges.
+	// measure the canvas before you paint
 	viewportU := rt.Vec3{X: viewportWidth, Y: 0, Z: 0}
 	viewportV := rt.Vec3{X: 0, Y: -viewportHeight, Z: 0}
 
-	// Calculate the horizontal and vertical delta vectors from pixel to pixel.
+	// baby steps across the screen
 	pixelDeltaU := viewportU.Div(float64(imageWidth))
 	pixelDeltaV := viewportV.Div(float64(imageHeight))
 
-	// Calculate the location of the upper left pixel.
+	// the upper left pixel.
 	viewportUpperLeft := cameraCenter.
 		Sub(rt.Vec3{X: 0, Y: 0, Z: focalLength}).
 		Sub(viewportU.Div(2)).
 		Sub(viewportV.Div(2))
 	pixel00Loc := viewportUpperLeft.Add(pixelDeltaU.Add(pixelDeltaV).Scale(0.5))
 
-	// World - create objects to render
+	// Sphere time!
 	world := rt.NewHittableList()
 	world.Add(rt.NewSphere(rt.Point3{X: 0, Y: 0, Z: -1}, 0.5))
+	world.Add(rt.NewSphere(rt.Point3{X: -1, Y: 0, Z: -1.5}, 0.5)) // addtional sphere
+	world.Add(rt.NewSphere(rt.Point3{X: 1, Y: 0, Z: -1.5}, 0.5))  // addtional sphere
 	world.Add(rt.NewSphere(rt.Point3{X: 0, Y: -100.5, Z: -1}, 100))
 
-	// Create image for PNG output
+	// image for PNG output
 	img := image.NewRGBA(image.Rect(0, 0, imageWidth, imageHeight))
 
 	// Render (PPM - commented out)
