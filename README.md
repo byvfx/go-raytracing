@@ -27,18 +27,12 @@ The program will generate an `image.png` file in the same directory.
 The current implementation generates a 800x450 pixel image (16:9 aspect ratio):
 
 - A sphere positioned at (0, 0, -1) with radius 0.5
+- A sphere positioned at (-1, 0.5, -1.5) with radius 0.5
+- A sphere positioned at (1, 0.5, -1.5) with radius 0.5
 - A larger ground sphere at (0, -100.5, -1) with radius 100
 - Sky gradient background:
 
 The image is saved as `image.png` in PNG format for easy viewing.
-
-## How It Works
-
-1. **Camera Setup**: Defines viewport dimensions, focal length, and pixel spacing
-2. **Ray Generation**: For each pixel, creates a ray from camera origin through the pixel center
-3. **Ray Tracing**: Tests if ray intersects with the sphere using discriminant calculation
-4. **Coloring**: Returns sphere color if hit, otherwise calculates sky gradient color
-5. **Image Output**: Writes pixel colors to PNG image file
 
 ## Progress
 
