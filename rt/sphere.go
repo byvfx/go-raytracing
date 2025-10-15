@@ -12,12 +12,13 @@ type Sphere struct {
 func NewSphere(center Point3, radius float64) *Sphere {
 	return &Sphere{
 		Center: center,
-		Radius: math.Max(0, radius), // Ensure radius is non-negative
+		Radius: math.Max(0, radius),
 	}
 }
 
-// Hit implements the Hittable interface for spheres
-func (s *Sphere) Hit(r Ray, rayTMin, rayTMax float64, rec *HitRecord) bool {
+// Hittable interface for spheres
+func (s *Sphere) Hit(r Ray, rayT Interval, rec *HitRecord) bool {
+
 	oc := s.Center.Sub(r.Origin())
 	a := r.Direction().Len2()
 	h := Dot(r.Direction(), oc)
@@ -30,11 +31,10 @@ func (s *Sphere) Hit(r Ray, rayTMin, rayTMax float64, rec *HitRecord) bool {
 
 	sqrtd := math.Sqrt(discriminant)
 
-	// Find the nearest root that lies in the acceptable range
 	root := (h - sqrtd) / a
-	if root <= rayTMin || rayTMax <= root {
+	if !rayT.Surrounds(root) {
 		root = (h + sqrtd) / a
-		if root <= rayTMin || rayTMax <= root {
+		if !rayT.Surrounds(root) {
 			return false
 		}
 	}
@@ -42,6 +42,5 @@ func (s *Sphere) Hit(r Ray, rayTMin, rayTMax float64, rec *HitRecord) bool {
 	rec.T = root
 	rec.P = r.At(rec.T)
 	rec.Normal = rec.P.Sub(s.Center).Div(s.Radius)
-
 	return true
 }

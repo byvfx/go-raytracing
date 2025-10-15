@@ -55,7 +55,7 @@ func (c *Camera) initialize() {
 func (c *Camera) rayColor(r Ray, world Hittable) Color {
 	rec := &HitRecord{}
 
-	if world.Hit(r, 0, math.Inf(1), rec) {
+	if world.Hit(r, NewInterval(0, math.Inf(1)), rec) {
 		return Color{X: rec.Normal.X + 1, Y: rec.Normal.Y + 1, Z: rec.Normal.Z + 1}.Scale(0.5)
 	}
 

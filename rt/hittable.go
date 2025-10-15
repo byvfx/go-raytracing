@@ -9,5 +9,5 @@ type HitRecord struct {
 
 // Hittable interface for objects that can be hit by rays
 type Hittable interface {
-	Hit(r Ray, rayTMin, rayTMax float64, rec *HitRecord) bool
+	Hit(r Ray, rayT Interval, rec *HitRecord) bool
 }

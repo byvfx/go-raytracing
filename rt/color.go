@@ -2,6 +2,8 @@ package rt
 
 import "math"
 
+var intensity = NewInterval(0.000, 0.999)
+
 func Clamp(x, min, max float64) float64 {
 	if x < min {
 		return min
@@ -18,8 +20,8 @@ func (c Color) ToRGB(samplesPerPixel int) (int, int, int) {
 	g := math.Sqrt(c.Y * scale)
 	b := math.Sqrt(c.Z * scale)
 
-	ri := int(256 * Clamp(r, 0.0, 0.999))
-	gi := int(256 * Clamp(g, 0.0, 0.999))
-	bi := int(256 * Clamp(b, 0.0, 0.999))
+	ri := int(256 * Clamp(r, intensity.Min, intensity.Max))
+	gi := int(256 * Clamp(g, intensity.Min, intensity.Max))
+	bi := int(256 * Clamp(b, intensity.Min, intensity.Max))
 	return ri, gi, bi
 }

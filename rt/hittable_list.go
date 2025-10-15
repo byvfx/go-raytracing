@@ -21,13 +21,13 @@ func (hl *HittableList) Clear() {
 }
 
 // Hit implements the Hittable interface for the list
-func (hl *HittableList) Hit(r Ray, rayTMin, rayTMax float64, rec *HitRecord) bool {
+func (hl *HittableList) Hit(r Ray, rayT Interval, rec *HitRecord) bool {
 	tempRec := &HitRecord{}
 	hitAnything := false
-	closestSoFar := rayTMax
+	closestSoFar := rayT.Max
 
 	for _, object := range hl.Objects {
-		if object.Hit(r, rayTMin, closestSoFar, tempRec) {
+		if object.Hit(r, NewInterval(rayT.Min, closestSoFar), tempRec) {
 			hitAnything = true
 			closestSoFar = tempRec.T
 			*rec = *tempRec

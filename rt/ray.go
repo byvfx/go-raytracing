@@ -5,8 +5,6 @@ type Ray struct {
 	dir  Vec3
 }
 
-// Constructors
-
 func NewRay(origin Point3, direction Vec3) Ray {
 	return Ray{orig: origin, dir: direction}
 }

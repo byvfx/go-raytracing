@@ -9,8 +9,7 @@ type Vec3 struct {
 	X, Y, Z float64
 }
 
-// Constructors
-
+// Vector method
 func NewVec3(x, y, z float64) Vec3 { return Vec3{X: x, Y: y, Z: z} }
 
 type Point3 = Vec3
