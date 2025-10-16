@@ -16,7 +16,8 @@ func NewSphere(center Point3, radius float64) *Sphere {
 	}
 }
 
-// Hittable interface for spheres
+// Hit implements the Hittable interface for Sphere
+
 func (s *Sphere) Hit(r Ray, rayT Interval, rec *HitRecord) bool {
 
 	oc := s.Center.Sub(r.Origin())
