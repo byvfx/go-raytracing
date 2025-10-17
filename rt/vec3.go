@@ -70,7 +70,7 @@ func Cross(a, b Vec3) Vec3 {
 }
 func RandomVec3() Vec3 {
 	return Vec3{
-		X: RandomDouble(), // ← Note the parentheses ()
+		X: RandomDouble(),
 		Y: RandomDouble(),
 		Z: RandomDouble(),
 	}
@@ -82,4 +82,17 @@ func RandomVec3Range(min, max float64) Vec3 {
 		Y: RandomDoubleRange(min, max),
 		Z: RandomDoubleRange(min, max),
 	}
+}
+
+func Reflect(v, n Vec3) Vec3 {
+	return v.Sub(n.Scale(2 * Dot(v, n)))
+}
+
+func Refract(uv, n Vec3, etaiOverEtat float64) Vec3 {
+	cosTheta := math.Min(Dot(uv.Neg(), n), 1.0)
+
+	rOutPrep := uv.Add(n.Scale(cosTheta)).Scale(etaiOverEtat)
+
+	rOutParallel := n.Scale(-math.Sqrt(math.Abs(1.0 - rOutPrep.Len2())))
+	return rOutPrep.Add((rOutParallel))
 }

@@ -6,13 +6,15 @@ import "math"
 type Sphere struct {
 	Center Point3
 	Radius float64
+	Mat    Material
 }
 
-// NewSphere creates a new sphere with the given center and radius
-func NewSphere(center Point3, radius float64) *Sphere {
+// NewSphere creates a new sphere with the given center and radius and material
+func NewSphere(center Point3, radius float64, mat Material) *Sphere {
 	return &Sphere{
 		Center: center,
 		Radius: math.Max(0, radius),
+		Mat:    mat,
 	}
 }
 
@@ -42,6 +44,8 @@ func (s *Sphere) Hit(r Ray, rayT Interval, rec *HitRecord) bool {
 
 	rec.T = root
 	rec.P = r.At(rec.T)
-	rec.Normal = rec.P.Sub(s.Center).Div(s.Radius)
+	outwardNormal := rec.P.Sub(s.Center).Div(s.Radius)
+	rec.SetFaceNormal(r, outwardNormal)
+	rec.Mat = s.Mat
 	return true
 }
