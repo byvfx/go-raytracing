@@ -16,17 +16,19 @@ type Camera struct {
 	ImageWidth      int
 	SamplesPerPixel int
 
-	imageHeight int
-	center      Point3
-	pixel00Loc  Point3
-	pixelDeltaU Vec3
-	pixelDeltaV Vec3
+	imageHeight        int
+	pixelsSamplesScale float64
+	center             Point3
+	pixel00Loc         Point3
+	pixelDeltaU        Vec3
+	pixelDeltaV        Vec3
 }
 
 func NewCamera() *Camera {
 	return &Camera{
-		AspectRatio: 1.0,
-		ImageWidth:  800,
+		AspectRatio:     1.0,
+		ImageWidth:      800,
+		SamplesPerPixel: 10,
 	}
 }
 
@@ -38,6 +40,7 @@ func (c *Camera) initialize() {
 	focalLength := 1.0
 	viewportHeight := 2.0
 	viewportWidth := viewportHeight * (float64(c.ImageWidth) / float64(c.imageHeight))
+	c.pixelsSamplesScale = 1.0 / float64(c.SamplesPerPixel)
 
 	viewportU := Vec3{X: viewportWidth, Y: 0, Z: 0}
 	viewportV := Vec3{X: 0, Y: -viewportHeight, Z: 0}
@@ -52,7 +55,27 @@ func (c *Camera) initialize() {
 	c.pixel00Loc = viewportUpperLeft.Add(c.pixelDeltaU.Add(c.pixelDeltaV).Scale(0.5))
 }
 
-// sending out them rays
+func (c *Camera) sampleSquare() Vec3 {
+	return Vec3{
+		X: RandomDouble() - 0.5,
+		Y: RandomDouble() - 0.5,
+		Z: 0,
+	}
+}
+
+func (c *Camera) getRay(i, j int) Ray {
+	offset := c.sampleSquare()
+	pixelSample := c.pixel00Loc.
+		Add(c.pixelDeltaU.Scale(float64(i) + offset.X)).
+		Add(c.pixelDeltaV.Scale(float64(j) + offset.Y))
+
+	rayOrigin := c.center
+
+	rayDirection := pixelSample.Sub(rayOrigin)
+	return NewRay(rayOrigin, rayDirection)
+}
+
+// sending out them color rays
 func (c *Camera) rayColor(r Ray, world Hittable) Color {
 	rec := &HitRecord{}
 
@@ -99,15 +122,13 @@ func (c *Camera) Render(world Hittable) {
 	for j := range c.imageHeight {
 		c.progressBar(j+1, c.imageHeight, barWidth)
 		for i := range c.ImageWidth {
-			pixelCenter := c.pixel00Loc.
-				Add(c.pixelDeltaU.Scale(float64(i))).
-				Add(c.pixelDeltaV.Scale(float64(j)))
+			pixelColor := Color{X: 0, Y: 0, Z: 0}
+			for sample := 0; sample < c.SamplesPerPixel; sample++ {
+				r := c.getRay(i, j)
+				pixelColor = pixelColor.Add(c.rayColor(r, world))
+			}
 
-			rayDirection := pixelCenter.Sub(c.center)
-			r := NewRay(c.center, rayDirection)
-
-			pixelColor := c.rayColor(r, world)
-			rgb_r, rgb_g, rgb_b := pixelColor.ToRGB(1)
+			rgb_r, rgb_g, rgb_b := pixelColor.ToRGB(c.SamplesPerPixel)
 
 			// PNG output
 			img.Set(i, j, color.RGBA{R: uint8(rgb_r), G: uint8(rgb_g), B: uint8(rgb_b), A: 255})
