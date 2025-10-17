@@ -60,7 +60,7 @@ camera.Vup = rt.Vec3{X: 0, Y: 1, Z: 0}            // Y-axis is up
 
 The current implementation generates configurable resolution images (default 800x450, 16:9 aspect ratio):
 
-- Ground sphere: Large yellow-green diffuse plane
+- Ground Plane: Large yellow-green diffuse plane
 - Center sphere: Blue diffuse material
 - Left sphere: Glass material with hollow bubble effect
 - Right sphere: Shiny gold metal
