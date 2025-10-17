@@ -66,6 +66,7 @@ func Cross(a, b Vec3) Vec3 {
 	return Vec3{
 		X: a.Y*b.Z - a.Z*b.Y,
 		Y: a.Z*b.X - a.X*b.Z,
+		Z: a.X*b.Y - a.Y*b.X, // was missing the Z for a while and i couldnt figure out why the it was distorted
 	}
 }
 func RandomVec3() Vec3 {

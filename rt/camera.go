@@ -16,6 +16,10 @@ type Camera struct {
 	ImageWidth      int
 	SamplesPerPixel int
 	MaxDepth        int
+	Vfov            float64
+	LookFrom        Point3
+	LookAt          Point3
+	Vup             Vec3
 
 	imageHeight        int
 	pixelsSamplesScale float64
@@ -23,6 +27,7 @@ type Camera struct {
 	pixel00Loc         Point3
 	pixelDeltaU        Vec3
 	pixelDeltaV        Vec3
+	u, v, w            Vec3
 }
 
 func NewCamera() *Camera {
@@ -31,29 +36,70 @@ func NewCamera() *Camera {
 		ImageWidth:      800,
 		SamplesPerPixel: 10,
 		MaxDepth:        50,
+		Vfov:            90,
+		LookFrom:        Point3{0, 0, 0},
+		LookAt:          Point3{0, 0, -1},
+		Vup:             Vec3{0, 1, 0},
 	}
 }
 
 // init camera parameters
 func (c *Camera) initialize() {
-
 	c.imageHeight = max(int(float64(c.ImageWidth)/c.AspectRatio), 1)
-	c.center = Point3{X: 0, Y: 0, Z: 0}
-	focalLength := 1.0
-	viewportHeight := 2.0
-	viewportWidth := viewportHeight * (float64(c.ImageWidth) / float64(c.imageHeight))
 	c.pixelsSamplesScale = 1.0 / float64(c.SamplesPerPixel)
 
-	viewportU := Vec3{X: viewportWidth, Y: 0, Z: 0}
-	viewportV := Vec3{X: 0, Y: -viewportHeight, Z: 0}
+	// Camera center is at LookFrom
+	c.center = c.LookFrom
 
+	// ✓ Calculate focal length FIRST
+	// C++: auto focal_length = (lookfrom - lookat).length();
+	focalLength := c.LookFrom.Sub(c.LookAt).Len()
+
+	// Calculate viewport dimensions
+	// C++: auto theta = degrees_to_radians(vfov);
+	theta := DegreesToRadians(c.Vfov)
+
+	// C++: auto h = std::tan(theta/2);
+	h := math.Tan(theta / 2)
+
+	// C++: auto viewport_height = 2 * h * focal_length;
+	viewportHeight := 2 * h * focalLength
+
+	// C++: auto viewport_width = viewport_height * (double(image_width)/image_height);
+	viewportWidth := viewportHeight * (float64(c.ImageWidth) / float64(c.imageHeight))
+
+	// ✓ Calculate camera basis vectors AFTER focal length
+	// C++: w = unit_vector(lookfrom - lookat);
+	c.w = c.LookFrom.Sub(c.LookAt).Unit()
+
+	// C++: u = unit_vector(cross(vup, w));
+	c.u = Cross(c.Vup, c.w).Unit()
+
+	// C++: v = cross(w, u);
+	c.v = Cross(c.w, c.u)
+
+	// Calculate the vectors across the horizontal and down the vertical viewport edges
+	// C++: vec3 viewport_u = viewport_width * u;
+	viewportU := c.u.Scale(viewportWidth)
+
+	// C++: vec3 viewport_v = viewport_height * -v;
+	viewportV := c.v.Neg().Scale(viewportHeight)
+
+	// Calculate the horizontal and vertical delta vectors from pixel to pixel
+	// C++: pixel_delta_u = viewport_u / image_width;
 	c.pixelDeltaU = viewportU.Div(float64(c.ImageWidth))
+
+	// C++: pixel_delta_v = viewport_v / image_height;
 	c.pixelDeltaV = viewportV.Div(float64(c.imageHeight))
 
+	// Calculate the location of the upper left pixel
+	// C++: auto viewport_upper_left = center - (focal_length * w) - viewport_u/2 - viewport_v/2;
 	viewportUpperLeft := c.center.
-		Sub(Vec3{X: 0, Y: 0, Z: focalLength}).
+		Sub(c.w.Scale(focalLength)).
 		Sub(viewportU.Div(2)).
 		Sub(viewportV.Div(2))
+
+	// C++: pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 	c.pixel00Loc = viewportUpperLeft.Add(c.pixelDeltaU.Add(c.pixelDeltaV).Scale(0.5))
 }
 
