@@ -4,7 +4,7 @@ A Go implementation following the "Ray Tracing in One Weekend" tutorial by Peter
 
 ## Overview
 
-This project implements a raytracer that generates PNG image files. The current implementation features a simple sphere with ray intersection testing rendered against a sky gradient background.
+This project implements a raytracer that generates PNG image files. The current implementation features three simple spheres with ray intersection testing rendered against a sky gradient background. Each sphere has a different material property to demonstrate basic rendering techniques.
 
 ## Requirements
 
@@ -44,10 +44,10 @@ This implementation follows the "Ray Tracing in One Weekend" tutorial progressio
 - [x] Ray class
 - [x] Simple sphere rendering
 - [x] Surface normals and shading
-- [ ] Anti-aliasing
-- [ ] Diffuse materials
-- [ ] Metal materials
-- [ ] Dielectric materials
+- [x] Anti-aliasing
+- [x] Diffuse materials
+- [x] Metal materials
+- [x] Dielectric materials
 - [ ] Camera positioning
 - [ ] Depth of field
 
