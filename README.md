@@ -4,7 +4,7 @@ A Go implementation following the "Ray Tracing in One Weekend" tutorial by Peter
 
 ## Overview
 
-This project implements a raytracer that generates PNG image files. The current implementation features three simple spheres with ray intersection testing rendered against a sky gradient background. Each sphere has a different material property to demonstrate basic rendering techniques.
+This project implements a raytracer that generates PNG image files. The implementation features a fully positionable camera with adjustable field of view, rendering spheres with different materials (diffuse, metallic, and glass) against a sky gradient background.
 
 ## Requirements
 
@@ -22,38 +22,108 @@ go run main.go
 
 The program will generate an `image.png` file in the same directory.
 
+## Features
+
+### Camera System
+
+- **Positionable camera**: Place the camera anywhere in 3D space using `LookFrom`
+- **Look-at targeting**: Point the camera at any location using `LookAt`
+- **Adjustable field of view**: Control zoom level with `Vfov` (vertical field of view in degrees)
+- **Camera orientation**: Define "up" direction with `Vup` vector
+- **Aspect ratio control**: Set image dimensions with `AspectRatio` and `ImageWidth`
+
+Example camera configuration:
+
+```go
+camera.Vfov = 20                                   // Telephoto lens (zoomed in)
+camera.LookFrom = rt.Point3{X: -2, Y: 2, Z: 1}    // Camera position
+camera.LookAt = rt.Point3{X: 0, Y: 0, Z: -1}      // Looking at origin
+camera.Vup = rt.Vec3{X: 0, Y: 1, Z: 0}            // Y-axis is up
+```
+
+### Materials
+
+- **Lambertian (Diffuse)**: Matte surfaces that scatter light randomly
+- **Metal**: Reflective surfaces with adjustable fuzziness
+- **Dielectric (Glass)**: Transparent materials with refraction and reflection
+  - Supports realistic Fresnel effects (Schlick's approximation)
+  - Can create hollow glass spheres (bubble effect)
+
+### Rendering Quality
+
+- **Anti-aliasing**: Configurable samples per pixel (default: 100)
+- **Ray bouncing**: Adjustable maximum ray depth for indirect lighting (default: 50)
+- **Gamma correction**: Automatic gamma 2.0 correction for realistic color output
+- **Progress indicator**: Real-time rendering progress bar
+
 ## Output
 
-The current implementation generates a 800x450 pixel image (16:9 aspect ratio):
+The current implementation generates configurable resolution images (default 800x450, 16:9 aspect ratio):
 
-- A sphere positioned at (0, 0, -1) with radius 0.5
-- A sphere positioned at (-1, 0.5, -1.5) with radius 0.5
-- A sphere positioned at (1, 0.5, -1.5) with radius 0.5
-- A larger ground sphere at (0, -100.5, -1) with radius 100
-- Sky gradient background:
+- Ground sphere: Large yellow-green diffuse plane
+- Center sphere: Blue diffuse material
+- Left sphere: Glass material with hollow bubble effect
+- Right sphere: Shiny gold metal
 
 The image is saved as `image.png` in PNG format for easy viewing.
+
+## Customization
+
+You can easily modify the scene in `main.go`:
+
+```go
+// Create custom materials
+materialGlass := rt.NewDielectric(1.5)                          // Glass (refractive index 1.5)
+materialMetal := rt.NewMetal(rt.Color{X: 0.8, Y: 0.6, Z: 0.2}, 0.0)  // Shiny gold metal
+materialMatte := rt.NewLambertian(rt.Color{X: 0.7, Y: 0.3, Z: 0.3})  // Red matte
+
+// Add spheres to the scene
+world.Add(rt.NewSphere(rt.Point3{X: 0, Y: 0, Z: -1}, 0.5, materialGlass))
+
+// Adjust camera settings
+camera.Vfov = 90                                    // Wide angle
+camera.SamplesPerPixel = 500                        // High quality
+camera.MaxDepth = 50                                // More light bounces
+```
 
 ## Progress
 
 This implementation follows the "Ray Tracing in One Weekend" tutorial progression:
 
-- [x] Basic image output (PPM format)
+- [x] Basic image output (PNG format)
 - [x] Progress indicator
 - [x] Vector math utilities
 - [x] Ray class
 - [x] Simple sphere rendering
 - [x] Surface normals and shading
-- [x] Anti-aliasing
-- [x] Diffuse materials
-- [x] Metal materials
-- [x] Dielectric materials
-- [ ] Camera positioning
-- [ ] Depth of field
+- [x] Anti-aliasing (multi-sampling)
+- [x] Diffuse materials (Lambertian)
+- [x] Metal materials (with fuzziness)
+- [x] Dielectric materials (glass with refraction)
+- [x] Camera positioning (positionable camera)
+- [x] Adjustable field of view
+- [ ] Defocus blur (depth of field)
+- [ ] Motion blur
+- [ ] Final scene rendering
+
+## Performance Notes
+
+Rendering time depends on:
+
+- Image resolution (`ImageWidth` × calculated height)
+- Samples per pixel (`SamplesPerPixel`)
+- Maximum ray depth (`MaxDepth`)
+- Scene complexity (number of objects)
+
+Typical render times:
+
+- 400×225 @ 100 samples: ~30-60 seconds
+- 800×450 @ 100 samples: ~2-4 minutes
+- 1920×1080 @ 500 samples: ~30-60 minutes
 
 ## Resources
 
-- [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html) - Original tutorial
+- [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html) - Original tutorial by Peter Shirley
 
 ## License
 
