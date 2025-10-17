@@ -37,6 +37,27 @@ func (v Vec3) Unit() Vec3 {
 	return v.Div(l)
 }
 
+func RandomUnitVector() Vec3 {
+	for {
+		p := RandomVec3Range(-1, 1)
+		lensq := p.Len2()
+
+		if 1e-160 < lensq && lensq <= 1 {
+			return p.Div(math.Sqrt(lensq))
+		}
+	}
+}
+
+func RandomOnHemiSphere(normal Vec3) Vec3 {
+	onUnitSphere := RandomUnitVector()
+	if Dot(onUnitSphere, normal) > 0.0 {
+		return onUnitSphere
+	} else {
+		return onUnitSphere.Neg()
+	}
+
+}
+
 func Dot(a, b Vec3) float64 {
 	return a.X*b.X + a.Y*b.Y + a.Z*b.Z
 }
@@ -45,6 +66,20 @@ func Cross(a, b Vec3) Vec3 {
 	return Vec3{
 		X: a.Y*b.Z - a.Z*b.Y,
 		Y: a.Z*b.X - a.X*b.Z,
-		Z: a.X*b.Y - a.Y*b.X,
+	}
+}
+func RandomVec3() Vec3 {
+	return Vec3{
+		X: RandomDouble(), // ← Note the parentheses ()
+		Y: RandomDouble(),
+		Z: RandomDouble(),
+	}
+}
+
+func RandomVec3Range(min, max float64) Vec3 {
+	return Vec3{
+		X: RandomDoubleRange(min, max),
+		Y: RandomDoubleRange(min, max),
+		Z: RandomDoubleRange(min, max),
 	}
 }

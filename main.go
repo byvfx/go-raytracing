@@ -8,6 +8,7 @@ func main() {
 	camera.AspectRatio = 16.0 / 9.0
 	camera.ImageWidth = 800
 	camera.SamplesPerPixel = 100
+	camera.MaxDepth = 50
 
 	// Sphere time!
 	world := rt.NewHittableList()

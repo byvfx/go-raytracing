@@ -15,6 +15,7 @@ type Camera struct {
 	AspectRatio     float64
 	ImageWidth      int
 	SamplesPerPixel int
+	MaxDepth        int
 
 	imageHeight        int
 	pixelsSamplesScale float64
@@ -29,6 +30,7 @@ func NewCamera() *Camera {
 		AspectRatio:     1.0,
 		ImageWidth:      800,
 		SamplesPerPixel: 10,
+		MaxDepth:        50,
 	}
 }
 
@@ -76,11 +78,18 @@ func (c *Camera) getRay(i, j int) Ray {
 }
 
 // sending out them color rays
-func (c *Camera) rayColor(r Ray, world Hittable) Color {
+func (c *Camera) rayColor(r Ray, depth int, world Hittable) Color {
+	if depth <= 0 {
+		return Color{X: 0, Y: 0, Z: 0}
+	}
+
 	rec := &HitRecord{}
 
-	if world.Hit(r, NewInterval(0, math.Inf(1)), rec) {
-		return Color{X: rec.Normal.X + 1, Y: rec.Normal.Y + 1, Z: rec.Normal.Z + 1}.Scale(0.5)
+	if world.Hit(r, NewInterval(0.001, math.Inf(1)), rec) {
+		direction := rec.Normal.Add(RandomUnitVector())
+
+		scattered := NewRay(rec.P, direction)
+		return c.rayColor(scattered, depth-1, world).Scale(0.5)
 	}
 
 	unitDirection := r.Direction().Unit()
@@ -125,7 +134,7 @@ func (c *Camera) Render(world Hittable) {
 			pixelColor := Color{X: 0, Y: 0, Z: 0}
 			for sample := 0; sample < c.SamplesPerPixel; sample++ {
 				r := c.getRay(i, j)
-				pixelColor = pixelColor.Add(c.rayColor(r, world))
+				pixelColor = pixelColor.Add(c.rayColor(r, c.MaxDepth, world))
 			}
 
 			rgb_r, rgb_g, rgb_b := pixelColor.ToRGB(c.SamplesPerPixel)
