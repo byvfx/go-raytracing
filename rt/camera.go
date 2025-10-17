@@ -12,8 +12,9 @@ import (
 
 type Camera struct {
 	// caps mean public
-	AspectRatio float64
-	ImageWidth  int
+	AspectRatio     float64
+	ImageWidth      int
+	SamplesPerPixel int
 
 	imageHeight int
 	center      Point3

@@ -15,6 +15,7 @@ func NewVec3(x, y, z float64) Vec3 { return Vec3{X: x, Y: y, Z: z} }
 type Point3 = Vec3
 type Color = Vec3
 
+// debug statement if needed
 func (v Vec3) String() string { return fmt.Sprintf("%g %g %g", v.X, v.Y, v.Z) }
 
 // Basic Ops
