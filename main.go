@@ -4,19 +4,19 @@ import "go-raytracing/rt"
 
 func main() {
 	//material time
-	materialGround := rt.NewLambertian(rt.Color{X: 0.8, Y: 0.8, Z: 0.0})
+	materialGround := rt.NewLambertian(rt.Color{X: 0.5, Y: 0.5, Z: 0.0})
 	materialCenter := rt.NewLambertian(rt.Color{X: 0.1, Y: 0.2, Z: 0.5})
 	materialLeft := rt.NewDielectric(1.5)
 	materialBubble := rt.NewDielectric(1.0 / 1.5)
-	materialRight := rt.NewMetal(rt.Color{X: 0.8, Y: 0.6, Z: 0.2}, 1.0)
+	materialRight := rt.NewMetal(rt.Color{X: 1.0, Y: 1.0, Z: 1.0}, 0.0)
 
 	// Make the camera
 	camera := rt.NewCamera()
 	camera.AspectRatio = 16.0 / 9.0
 	camera.ImageWidth = 400
-	camera.SamplesPerPixel = 500
+	camera.SamplesPerPixel = 100
 	camera.MaxDepth = 10
-	camera.Vfov = 25
+	camera.Vfov = 90
 
 	//position camera
 
@@ -27,7 +27,8 @@ func main() {
 	// Sphere time!
 	world := rt.NewHittableList()
 
-	world.Add(rt.NewSphere(rt.Point3{X: 0, Y: -100.5, Z: -1}, 100, materialGround))
+	//world.Add(rt.NewSphere(rt.Point3{X: 0, Y: -100.5, Z: -1}, 100, materialGround))
+	world.Add(rt.NewPlane(rt.Point3{X: 0, Y: -0.5, Z: -1}, rt.Vec3{X: 0, Y: 1, Z: 0}, materialGround))
 	world.Add(rt.NewSphere(rt.Point3{X: 0, Y: 0, Z: -1}, 0.5, materialCenter))
 	world.Add(rt.NewSphere(rt.Point3{X: -1, Y: 0, Z: -1}, 0.5, materialLeft))
 	world.Add(rt.NewSphere(rt.Point3{X: -1, Y: 0, Z: -1}, 0.4, materialBubble)) // Negative radius trick
