@@ -58,6 +58,19 @@ func RandomOnHemiSphere(normal Vec3) Vec3 {
 
 }
 
+func RandomInUnitDisk() Vec3 {
+	for {
+		p := Vec3{
+			X: RandomDoubleRange(-1, 1),
+			Y: RandomDoubleRange(-1, 1),
+			Z: 0,
+		}
+		if p.Len2() < 1 {
+			return p
+		}
+	}
+}
+
 func Dot(a, b Vec3) float64 {
 	return a.X*b.X + a.Y*b.Y + a.Z*b.Z
 }

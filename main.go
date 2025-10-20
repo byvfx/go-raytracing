@@ -17,6 +17,8 @@ func main() {
 	camera.SamplesPerPixel = 100
 	camera.MaxDepth = 10
 	camera.Vfov = 35
+	camera.DefocusAngle = 10.0
+	camera.FocusDist = 3.4
 
 	//position camera
 
