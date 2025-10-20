@@ -5,7 +5,7 @@ import "go-raytracing/rt"
 func main() {
 	//material time
 	materialGround := rt.NewLambertian(rt.Color{X: 0.5, Y: 0.5, Z: 0.0})
-	materialCenter := rt.NewLambertian(rt.Color{X: 0.1, Y: 0.2, Z: 0.5})
+	materialCenter := rt.NewLambertian(rt.Color{X: 1.0, Y: 0.5, Z: 0.0})
 	materialLeft := rt.NewDielectric(1.5)
 	materialBubble := rt.NewDielectric(1.0 / 1.5)
 	materialRight := rt.NewMetal(rt.Color{X: 1.0, Y: 1.0, Z: 1.0}, 0.0)
@@ -16,7 +16,7 @@ func main() {
 	camera.ImageWidth = 400
 	camera.SamplesPerPixel = 100
 	camera.MaxDepth = 10
-	camera.Vfov = 90
+	camera.Vfov = 35
 
 	//position camera
 
@@ -31,7 +31,7 @@ func main() {
 	world.Add(rt.NewPlane(rt.Point3{X: 0, Y: -0.5, Z: -1}, rt.Vec3{X: 0, Y: 1, Z: 0}, materialGround))
 	world.Add(rt.NewSphere(rt.Point3{X: 0, Y: 0, Z: -1}, 0.5, materialCenter))
 	world.Add(rt.NewSphere(rt.Point3{X: -1, Y: 0, Z: -1}, 0.5, materialLeft))
-	world.Add(rt.NewSphere(rt.Point3{X: -1, Y: 0, Z: -1}, 0.4, materialBubble)) // Negative radius trick
+	world.Add(rt.NewSphere(rt.Point3{X: -1, Y: 0, Z: -1}, 0.4, materialBubble))
 	world.Add(rt.NewSphere(rt.Point3{X: 1, Y: 0, Z: -1}, 0.5, materialRight))
 
 	// Render time
