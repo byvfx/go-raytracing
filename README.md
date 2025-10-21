@@ -58,12 +58,14 @@ camera.Vup = rt.Vec3{X: 0, Y: 1, Z: 0}            // Y-axis is up
 
 ## Output
 
-The current implementation generates configurable resolution images (default 800x450, 16:9 aspect ratio):
+The current implementation generates configurable resolution images:
 
 - Ground Plane: Large yellow-green diffuse plane
 - Center sphere: Blue diffuse material
 - Left sphere: Glass material with hollow bubble effect
 - Right sphere: Shiny gold metal
+- Spheres that have random materials added to them
+- Random Lambert spheres with some velocity to test motion blur
 
 The image is saved as `image.png` in PNG format for easy viewing.
 
@@ -88,7 +90,7 @@ camera.MaxDepth = 50                                // More light bounces
 
 ## Progress
 
-This implementation follows the "Ray Tracing in One Weekend" tutorial progression:
+### Ray Tracing in One Weekend
 
 - [x] Basic image output (PNG format)
 - [x] Progress indicator
@@ -102,9 +104,19 @@ This implementation follows the "Ray Tracing in One Weekend" tutorial progressio
 - [x] Dielectric materials (glass with refraction)
 - [x] Camera positioning (positionable camera)
 - [x] Adjustable field of view
-- [ ] Defocus blur (depth of field)
-- [ ] Motion blur
-- [ ] Final scene rendering
+- [x] Defocus blur (depth of field)
+
+### Ray Tracing: The Next Week
+
+- [x] Motion blur
+- [ ] Bounding Volume Hiearchies (BVH) 
+- [ ] Image texture mapping
+- [ ] Perlin noise
+- [ ] Quadrilaterals
+- [ ] Lights
+- [ ] Instances
+- [ ] Cornell Box scene
+- [ ] Volumes
 
 ## Performance Notes
 
@@ -115,16 +127,11 @@ Rendering time depends on:
 - Maximum ray depth (`MaxDepth`)
 - Scene complexity (number of objects)
 
-Typical render times:
-
-- 400×225 @ 100 samples: ~30-60 seconds
-- 800×450 @ 100 samples: ~2-4 minutes
-- 1920×1080 @ 500 samples: ~30-60 minutes
-
 ## Resources
 
-- [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html) - Original tutorial by Peter Shirley
+- [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html)
+- [Ray Tracing: The Next Week](https://raytracing.github.io/books/RayTracingTheNextWeek.html)
 
 ## License
 
-This project is for educational purposes following the public domain tutorial "Ray Tracing in One Weekend"
+This project is for educational purposes following the public domain tutorial "Ray Tracing in One Weekend" and "RayTracing: The Next Week"
