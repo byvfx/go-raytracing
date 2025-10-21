@@ -14,6 +14,7 @@ type Camera struct {
 	// caps mean public
 	AspectRatio     float64
 	ImageWidth      int
+	ImageHeight     int
 	SamplesPerPixel int
 	MaxDepth        int
 	Vfov            float64
@@ -23,7 +24,6 @@ type Camera struct {
 	DefocusAngle    float64
 	FocusDist       float64
 
-	imageHeight        int
 	pixelsSamplesScale float64
 	center             Point3
 	pixel00Loc         Point3
@@ -38,6 +38,7 @@ func NewCamera() *Camera {
 	return &Camera{
 		AspectRatio:     1.0,
 		ImageWidth:      800,
+		ImageHeight:     0,
 		SamplesPerPixel: 10,
 		MaxDepth:        50,
 		Vfov:            90,
@@ -48,8 +49,8 @@ func NewCamera() *Camera {
 }
 
 // init camera parameters
-func (c *Camera) initialize() {
-	c.imageHeight = max(int(float64(c.ImageWidth)/c.AspectRatio), 1)
+func (c *Camera) Initialize() {
+	c.ImageHeight = max(int(float64(c.ImageWidth)/c.AspectRatio), 1)
 
 	c.pixelsSamplesScale = 1.0 / float64(c.SamplesPerPixel)
 
@@ -61,7 +62,7 @@ func (c *Camera) initialize() {
 
 	viewportHeight := 2 * h * c.FocusDist
 
-	viewportWidth := viewportHeight * (float64(c.ImageWidth) / float64(c.imageHeight))
+	viewportWidth := viewportHeight * (float64(c.ImageWidth) / float64(c.ImageHeight))
 
 	c.w = c.LookFrom.Sub(c.LookAt).Unit()
 
@@ -75,7 +76,7 @@ func (c *Camera) initialize() {
 
 	c.pixelDeltaU = viewportU.Div(float64(c.ImageWidth))
 
-	c.pixelDeltaV = viewportV.Div(float64(c.imageHeight))
+	c.pixelDeltaV = viewportV.Div(float64(c.ImageHeight))
 
 	viewportUpperLeft := c.center.
 		Sub(c.w.Scale(c.FocusDist)).
@@ -115,9 +116,9 @@ func (c *Camera) getRay(i, j int) Ray {
 	} else {
 		rayOrigin = c.defocusDiskSample()
 	}
-
+	rayTime := RandomDouble()
 	rayDirection := pixelSample.Sub(rayOrigin)
-	return NewRay(rayOrigin, rayDirection)
+	return NewRay(rayOrigin, rayDirection, rayTime)
 }
 
 // sending out them color rays
@@ -142,7 +143,7 @@ func (c *Camera) rayColor(r Ray, depth int, world Hittable) Color {
 	a := 0.5 * (unitDirection.Y + 1)
 
 	white := Color{X: 1.0, Y: 1.0, Z: 1.0}
-	blue := Color{X: 0.1, Y: 0.3, Z: 1.0}
+	blue := Color{X: 0.5, Y: 0.7, Z: 1.0}
 	return white.Scale(1.0 - a).Add(blue.Scale(a))
 }
 
@@ -158,14 +159,14 @@ func (c *Camera) progressBar(done, total, width int) {
 }
 
 func (c *Camera) Render(world Hittable) {
-	c.initialize()
+	c.Initialize()
 
-	img := image.NewRGBA(image.Rect(0, 0, c.ImageWidth, c.imageHeight))
+	img := image.NewRGBA(image.Rect(0, 0, c.ImageWidth, c.ImageHeight))
 
 	const barWidth = 40
 
-	for j := range c.imageHeight {
-		c.progressBar(j+1, c.imageHeight, barWidth)
+	for j := range c.ImageHeight {
+		c.progressBar(j+1, c.ImageHeight, barWidth)
 		for i := range c.ImageWidth {
 			pixelColor := Color{X: 0, Y: 0, Z: 0}
 			for sample := 0; sample < c.SamplesPerPixel; sample++ {

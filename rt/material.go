@@ -19,7 +19,7 @@ func NewLambertian(albedo Color) *Lambertian {
 func (l *Lambertian) Scatter(rIn Ray, rec *HitRecord, attenuation *Color, scattered *Ray) bool {
 	scatterDirection := rec.Normal.Add(RandomUnitVector())
 
-	*scattered = NewRay(rec.P, scatterDirection)
+	*scattered = NewRay(rec.P, scatterDirection, rIn.Time())
 
 	*attenuation = l.Albedo
 
@@ -48,7 +48,7 @@ func (m *Metal) Scatter(rIn Ray, rec *HitRecord, attenuation *Color, scattered *
 
 	// Create the scattered ray
 	// C++: scattered = ray(rec.p, reflected);
-	*scattered = NewRay(rec.P, reflected)
+	*scattered = NewRay(rec.P, reflected, rIn.Time())
 
 	// Set the attenuation (color of the metal)
 	// C++: attenuation = albedo;
@@ -96,7 +96,7 @@ func (d *Dielectric) Scatter(rIn Ray, rec *HitRecord, attenuation *Color, scatte
 	} else {
 		direction = Refract(unitDirection, rec.Normal, ri)
 	}
-	*scattered = NewRay(rec.P, direction)
+	*scattered = NewRay(rec.P, direction, rIn.Time())
 
 	return true
 }

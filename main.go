@@ -3,6 +3,7 @@ package main
 import (
 	"go-raytracing/rt"
 	"math/rand"
+	"time"
 )
 
 func randomScene() *rt.HittableList {
@@ -26,7 +27,9 @@ func randomScene() *rt.HittableList {
 					albedo := rt.Color{X: rand.Float64(), Y: rand.Float64(), Z: rand.Float64()}.
 						Mult(rt.Color{X: rand.Float64(), Y: rand.Float64(), Z: rand.Float64()})
 					sphereMaterial = rt.NewLambertian((albedo))
-					world.Add(rt.NewSphere(center, 0.2, sphereMaterial))
+					// adding some movement here
+					center2 := center.Add(rt.Vec3{X: 0, Y: rt.RandomDoubleRange(0, 0.5), Z: 0})
+					world.Add(rt.NewMovingSphere(center, center2, 0.2, sphereMaterial))
 				} else if chooseMat < 0.95 {
 					albedo := rt.Color{
 						X: 0.5 + rand.Float64()*0.5,
@@ -57,6 +60,7 @@ func randomScene() *rt.HittableList {
 }
 
 func main() {
+	startTime := time.Now()
 	world := randomScene()
 
 	//material time
@@ -68,9 +72,10 @@ func main() {
 
 	// Make the camera
 	camera := rt.NewCamera()
+	camera.Initialize() // need to initialize to get the proper settings to show up
 	camera.AspectRatio = 16.0 / 9.0
-	camera.ImageWidth = 800
-	camera.SamplesPerPixel = 500
+	camera.ImageWidth = 400
+	camera.SamplesPerPixel = 50
 	camera.MaxDepth = 50
 	camera.Vfov = 20
 	camera.DefocusAngle = 0.75
@@ -97,5 +102,10 @@ func main() {
 	// world.Add(rt.NewSphere(rt.Point3{X: 1, Y: 0, Z: -1}, 0.5, materialRight))
 
 	// Render time
+
+	rt.PrintRenderSettings(camera, len(world.Objects))
 	camera.Render(world)
+	elasped := time.Since(startTime)
+
+	rt.PrintRenderStats(elasped, camera.ImageWidth, camera.ImageWidth*9/16)
 }
