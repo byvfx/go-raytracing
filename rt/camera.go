@@ -162,16 +162,6 @@ func (c *Camera) Render(world Hittable) {
 
 	img := image.NewRGBA(image.Rect(0, 0, c.ImageWidth, c.imageHeight))
 
-	// Render (PPM - commented out)
-	// out, err := os.Create("image.ppm")
-	// if err != nil {
-	// 	fmt.Fprintf(os.Stderr, "Error creating file: %v\n", err)
-	// 	return
-	// }
-	// w := bufio.NewWriter(out)
-	// defer w.Flush()
-	// fmt.Fprintf(w, "P3\n%d %d\n255\n", imageWidth, imageHeight)
-
 	const barWidth = 40
 
 	for j := range c.imageHeight {
@@ -188,14 +178,12 @@ func (c *Camera) Render(world Hittable) {
 			// PNG output
 			img.Set(i, j, color.RGBA{R: uint8(rgb_r), G: uint8(rgb_g), B: uint8(rgb_b), A: 255})
 
-			// PPM output
-			// fmt.Fprintf(w, "%d %d %d\n", rgb_r, rgb_g, rgb_b)
 		}
 	}
 
 	fmt.Fprintln(os.Stderr)
 
-	// Write PNG file
+	//Write PNG file
 	outFile, err := os.Create("image.png")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating PNG file: %v\n", err)
