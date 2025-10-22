@@ -74,8 +74,8 @@ func main() {
 	camera := rt.NewCamera()
 	camera.Initialize() // need to initialize to get the proper settings to show up
 	camera.AspectRatio = 16.0 / 9.0
-	camera.ImageWidth = 400
-	camera.SamplesPerPixel = 50
+	camera.ImageWidth = 600
+	camera.SamplesPerPixel = 200
 	camera.MaxDepth = 50
 	camera.Vfov = 20
 	camera.DefocusAngle = 0.75
@@ -107,5 +107,5 @@ func main() {
 	camera.Render(world)
 	elasped := time.Since(startTime)
 
-	rt.PrintRenderStats(elasped, camera.ImageWidth, camera.ImageWidth*9/16)
+	rt.PrintRenderStats(elasped, camera.ImageWidth, camera.ImageWidth)
 }
