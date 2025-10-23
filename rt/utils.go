@@ -36,7 +36,9 @@ func PrintRenderSettings(camera *Camera, objectCount int) {
 	fmt.Printf("Focus Distance:     %.1f\n", camera.FocusDist)
 	fmt.Printf("Camera Position:    (%.1f, %.1f, %.1f)\n", camera.LookFrom.X, camera.LookFrom.Y, camera.LookFrom.Z)
 	fmt.Printf("Camera Target:      (%.1f, %.1f, %.1f)\n", camera.LookAt.X, camera.LookAt.Y, camera.LookAt.Z)
+	fmt.Printf("Camera Motion Blur: %t\n", camera.CameraMotion)
 	fmt.Printf("Objects in Scene:   %d\n", objectCount)
+
 	fmt.Println("========================================")
 }
 

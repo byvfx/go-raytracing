@@ -23,6 +23,9 @@ type Camera struct {
 	Vup             Vec3
 	DefocusAngle    float64
 	FocusDist       float64
+	LookFrom2       Point3
+	LookAt2         Point3
+	CameraMotion    bool
 
 	pixelsSamplesScale float64
 	center             Point3
@@ -32,6 +35,8 @@ type Camera struct {
 	u, v, w            Vec3
 	defocusDiskU       Vec3
 	defocusDiskV       Vec3
+	centerMotion       Ray
+	lookAtMotion       Ray
 }
 
 func NewCamera() *Camera {
@@ -48,8 +53,21 @@ func NewCamera() *Camera {
 	}
 }
 
+// TODO update to use camera motion blur
 // init camera parameters
 func (c *Camera) Initialize() {
+
+	if c.CameraMotion {
+		velocity := c.LookFrom2.Sub(c.LookFrom)
+		c.centerMotion = NewRay(c.LookFrom, velocity, 0)
+
+		lookAtVelocity := c.LookAt2.Sub(c.LookAt)
+		c.lookAtMotion = NewRay(c.LookAt, lookAtVelocity, 0)
+
+	} else {
+		c.centerMotion = NewRay(c.LookFrom, Vec3{X: 0, Y: 0, Z: 0}, 0)
+		c.lookAtMotion = NewRay(c.LookAt, Vec3{X: 0, Y: 0, Z: 0}, 0)
+	}
 	c.ImageHeight = max(int(float64(c.ImageWidth)/c.AspectRatio), 1)
 
 	c.pixelsSamplesScale = 1.0 / float64(c.SamplesPerPixel)
@@ -90,7 +108,7 @@ func (c *Camera) Initialize() {
 	c.defocusDiskV = c.v.Scale(defocusRadius)
 }
 
-func (c *Camera) defocusDiskSample() Point3 {
+func (c *Camera) DefocusDiskSample() Point3 {
 	p := RandomInUnitDisk()
 	return c.center.Add((c.defocusDiskU.Scale(p.X)).Add(c.defocusDiskV.Scale(p.Y)))
 }
@@ -105,18 +123,52 @@ func (c *Camera) sampleSquare() Vec3 {
 
 func (c *Camera) getRay(i, j int) Ray {
 	offset := c.sampleSquare()
-	pixelSample := c.pixel00Loc.
-		Add(c.pixelDeltaU.Scale(float64(i) + offset.X)).
-		Add(c.pixelDeltaV.Scale(float64(j) + offset.Y))
+	rayTime := RandomDouble()
 
+	currentCenter := c.centerMotion.At(rayTime)
+	currentLookAt := c.lookAtMotion.At(rayTime)
+
+	w := currentCenter.Sub(currentLookAt).Unit()
+	u := Cross(c.Vup, w).Unit()
+	v := Cross(w, u)
+
+	theta := DegreesToRadians(c.Vfov)
+	h := math.Tan(theta / 2)
+	viewportHeight := 2 * h * c.FocusDist
+	viewportWidth := viewportHeight * (float64(c.ImageWidth) / float64(c.ImageHeight))
+
+	viewportU := u.Scale(viewportWidth)
+	viewportV := v.Neg().Scale(viewportHeight)
+
+	pixelDeltaU := viewportU.Div(float64(c.ImageWidth))
+	pixelDeltaV := viewportV.Div(float64(c.ImageHeight))
+
+	viewportUpperLeft := currentCenter.
+		Sub(w.Scale(c.FocusDist)).
+		Sub(viewportU.Div(2)).
+		Sub(viewportV.Div(2))
+
+	pixel00Loc := viewportUpperLeft.Add(pixelDeltaU.Add(pixelDeltaV).Scale(0.5))
+
+	// Calculate pixel sample position
+	pixelSample := pixel00Loc.
+		Add(pixelDeltaU.Scale(float64(i) + offset.X)).
+		Add(pixelDeltaV.Scale(float64(j) + offset.Y))
+
+	// Apply defocus blur if enabled
 	var rayOrigin Point3
 	if c.DefocusAngle <= 0 {
-		rayOrigin = c.center
-
+		rayOrigin = currentCenter
 	} else {
-		rayOrigin = c.defocusDiskSample()
+		// Defocus disk also moves with camera
+		defocusRadius := c.FocusDist * math.Tan(DegreesToRadians(c.DefocusAngle/2))
+		defocusDiskU := u.Scale(defocusRadius)
+		defocusDiskV := v.Scale(defocusRadius)
+
+		p := RandomInUnitDisk()
+		rayOrigin = currentCenter.Add(defocusDiskU.Scale(p.X)).Add(defocusDiskV.Scale(p.Y))
 	}
-	rayTime := RandomDouble()
+
 	rayDirection := pixelSample.Sub(rayOrigin)
 	return NewRay(rayOrigin, rayDirection, rayTime)
 }

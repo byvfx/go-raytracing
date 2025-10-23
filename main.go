@@ -80,11 +80,13 @@ func main() {
 	camera.Vfov = 20
 	camera.DefocusAngle = 0.75
 	camera.FocusDist = 10.0
+	camera.CameraMotion = true
 
 	//position camera
 	camera.LookFrom = rt.Point3{X: 13, Y: 2, Z: 3}
+	camera.LookFrom2 = rt.Point3{X: 12, Y: 2, Z: 2.5} // Move forward
 	camera.LookAt = rt.Point3{X: 0, Y: 0, Z: 0}
-	camera.Vup = rt.Vec3{X: 0, Y: 1, Z: 0}
+	camera.LookAt2 = rt.Point3{X: 0, Y: 0, Z: 0}
 
 	//camera.LookFrom = rt.Point3{X: -2, Y: 2, Z: 1}
 	//camera.LookAt = rt.Point3{X: 0, Y: 0, Z: -1}
@@ -104,8 +106,9 @@ func main() {
 	// Render time
 
 	rt.PrintRenderSettings(camera, len(world.Objects))
-	camera.Render(world)
-	elasped := time.Since(startTime)
 
-	rt.PrintRenderStats(elasped, camera.ImageWidth, camera.ImageWidth)
+	camera.Render(world)
+	elapsed := time.Since(startTime)
+
+	rt.PrintRenderStats(elapsed, camera.ImageWidth, camera.ImageHeight)
 }
