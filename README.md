@@ -21,6 +21,9 @@ go run main.go
 ```
 
 The program will generate an `image.png` file in the same directory.
+## Latest Render
+
+![Rendered Scene](image.png)
 
 ## Features
 
