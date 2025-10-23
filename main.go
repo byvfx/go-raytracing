@@ -61,7 +61,7 @@ func randomScene() *rt.HittableList {
 
 func main() {
 	startTime := time.Now()
-	world := randomScene()
+	world := rt.RandomScene()
 
 	//material time
 	// materialGround := rt.NewLambertian(rt.Color{X: 0.5, Y: 0.5, Z: 0.0})
@@ -72,21 +72,26 @@ func main() {
 
 	// Make the camera
 	camera := rt.NewCamera()
-	camera.Initialize() // need to initialize to get the proper settings to show up
-	camera.AspectRatio = 16.0 / 9.0
-	camera.ImageWidth = 600
-	camera.SamplesPerPixel = 200
-	camera.MaxDepth = 50
-	camera.Vfov = 20
-	camera.DefocusAngle = 0.75
-	camera.FocusDist = 10.0
-	camera.CameraMotion = true
+	camera.ApplyPreset(rt.QuickPreview())
+	camera.CameraMotion = false
+	camera.LookFrom2 = rt.Point3{X: 12, Y: 2, Z: 2.5}
+	camera.LookAt2 = rt.Point3{X: 0, Y: 0, Z: 0}
+	camera.Initialize()
+
+	// camera.AspectRatio = 16.0 / 9.0
+	// camera.ImageWidth = 600
+	// camera.SamplesPerPixel = 200
+	// camera.MaxDepth = 50
+	// camera.Vfov = 20
+	// camera.DefocusAngle = 0.75
+	// camera.FocusDist = 10.0
+	// camera.CameraMotion = true
 
 	//position camera
-	camera.LookFrom = rt.Point3{X: 13, Y: 2, Z: 3}
-	camera.LookFrom2 = rt.Point3{X: 12, Y: 2, Z: 2.5} // Move forward
-	camera.LookAt = rt.Point3{X: 0, Y: 0, Z: 0}
-	camera.LookAt2 = rt.Point3{X: 0, Y: 0, Z: 0}
+	// camera.LookFrom = rt.Point3{X: 13, Y: 2, Z: 3}
+	// camera.LookFrom2 = rt.Point3{X: 12, Y: 2, Z: 2.5} // Move forward
+	// camera.LookAt = rt.Point3{X: 0, Y: 0, Z: 0}
+	// camera.LookAt2 = rt.Point3{X: 0, Y: 0, Z: 0}
 
 	//camera.LookFrom = rt.Point3{X: -2, Y: 2, Z: 1}
 	//camera.LookAt = rt.Point3{X: 0, Y: 0, Z: -1}

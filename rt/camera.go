@@ -41,19 +41,95 @@ type Camera struct {
 
 func NewCamera() *Camera {
 	return &Camera{
-		AspectRatio:     1.0,
-		ImageWidth:      800,
-		ImageHeight:     0,
+		AspectRatio: 1.0,
+		ImageWidth:  800,
+		//ImageHeight is calculated in the Initialize()
+		//ImageHeight:     0,
 		SamplesPerPixel: 10,
 		MaxDepth:        50,
 		Vfov:            90,
 		LookFrom:        Point3{0, 0, 0},
 		LookAt:          Point3{0, 0, -1},
 		Vup:             Vec3{0, 1, 0},
+		DefocusAngle:    0.0,
+		FocusDist:       1.0,
+		LookFrom2:       Point3{0, 0, 0},
+		LookAt2:         Point3{0, 0, 0},
+		CameraMotion:    false,
 	}
 }
 
-// TODO update to use camera motion blur
+type CameraPreset struct {
+	AspectRatio     float64
+	ImageWidth      int
+	SamplesPerPixel int
+	MaxDepth        int
+	Vfov            float64
+	DefocusAngle    float64
+	FocusDist       float64
+	LookFrom        Point3
+	LookAt          Point3
+	Vup             Vec3
+}
+
+// Common camera presets
+func QuickPreview() CameraPreset {
+	return CameraPreset{
+		AspectRatio:     16.0 / 9.0,
+		ImageWidth:      400,
+		SamplesPerPixel: 10,
+		MaxDepth:        10,
+		Vfov:            20,
+		DefocusAngle:    0.0,
+		FocusDist:       10.0,
+		LookFrom:        Point3{X: 13, Y: 2, Z: 3},
+		LookAt:          Point3{X: 0, Y: 0, Z: 0},
+		Vup:             Vec3{X: 0, Y: 1, Z: 0},
+	}
+}
+
+func StandardQuality() CameraPreset {
+	return CameraPreset{
+		AspectRatio:     16.0 / 9.0,
+		ImageWidth:      600,
+		SamplesPerPixel: 100,
+		MaxDepth:        50,
+		Vfov:            20,
+		DefocusAngle:    0.6,
+		FocusDist:       10.0,
+		LookFrom:        Point3{X: 13, Y: 2, Z: 3},
+		LookAt:          Point3{X: 0, Y: 0, Z: 0},
+		Vup:             Vec3{X: 0, Y: 1, Z: 0},
+	}
+}
+
+func HighQuality() CameraPreset {
+	return CameraPreset{
+		AspectRatio:     16.0 / 9.0,
+		ImageWidth:      1200,
+		SamplesPerPixel: 500,
+		MaxDepth:        50,
+		Vfov:            20,
+		DefocusAngle:    0.6,
+		FocusDist:       10.0,
+		LookFrom:        Point3{X: 13, Y: 2, Z: 3},
+		LookAt:          Point3{X: 0, Y: 0, Z: 0},
+		Vup:             Vec3{X: 0, Y: 1, Z: 0},
+	}
+}
+func (c *Camera) ApplyPreset(preset CameraPreset) {
+	c.AspectRatio = preset.AspectRatio
+	c.ImageWidth = preset.ImageWidth
+	c.SamplesPerPixel = preset.SamplesPerPixel
+	c.MaxDepth = preset.MaxDepth
+	c.Vfov = preset.Vfov
+	c.DefocusAngle = preset.DefocusAngle
+	c.FocusDist = preset.FocusDist
+	c.LookFrom = preset.LookFrom
+	c.LookAt = preset.LookAt
+	c.Vup = preset.Vup
+}
+
 // init camera parameters
 func (c *Camera) Initialize() {
 
