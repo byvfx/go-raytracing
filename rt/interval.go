@@ -24,6 +24,14 @@ func NewEmptyInterval() Interval {
 	return EmptyInterval
 }
 
+func (i Interval) Expand(delta float64) Interval {
+	padding := delta
+	return Interval{
+		Min: i.Min - padding,
+		Max: i.Max + padding,
+	}
+}
+
 // C++: double size() const { return max - min; }
 func (i Interval) Size() float64 {
 	return i.Max - i.Min
