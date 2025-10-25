@@ -8,10 +8,13 @@ type SceneConfig struct {
 	GroundColor      Color
 	SphereGridBounds struct{ MinA, MaxA, MinB, MaxB int }
 	MovingSphereProb float64
+	LambertProb      float64
+	DielectricProb   float64
 	MetalProb        float64
 	LargeSpheresY    float64
 }
 
+// TODO add  lambert and dieelectric probabilty
 // settting default values
 func DefaultSceneConfig() SceneConfig {
 	return SceneConfig{
@@ -21,9 +24,11 @@ func DefaultSceneConfig() SceneConfig {
 			MaxA int
 			MinB int
 			MaxB int
-		}{-11, 11, -20, 20},
+		}{-10, 10, -10, 10},
 		MovingSphereProb: 0,
-		MetalProb:        0.95,
+		LambertProb:      0.3,
+		DielectricProb:   0.3,
+		MetalProb:        0.3,
 		LargeSpheresY:    1.0,
 	}
 }
@@ -58,7 +63,11 @@ func RandomSceneWithConfig(config SceneConfig) *HittableList {
 func addRandomSphere(world *HittableList, center Point3, chooseMat float64, config SceneConfig) {
 	var sphereMaterial Material
 
-	if chooseMat < config.MovingSphereProb {
+	lambertThreshold := config.LambertProb
+	metalThreshold := config.MetalProb + lambertThreshold
+	dielectricThreshold := config.DielectricProb + metalThreshold
+
+	if chooseMat < lambertThreshold {
 		albedo := Color{
 			X: rand.Float64() * rand.Float64(),
 			Y: rand.Float64() * rand.Float64(),
@@ -67,7 +76,7 @@ func addRandomSphere(world *HittableList, center Point3, chooseMat float64, conf
 		sphereMaterial = NewLambertian(albedo)
 		center2 := center.Add(Vec3{X: 0, Y: RandomDoubleRange(0, 0.5), Z: 0})
 		world.Add(NewMovingSphere(center, center2, 0.2, sphereMaterial))
-	} else if chooseMat < config.MetalProb {
+	} else if chooseMat < metalThreshold {
 
 		albedo := Color{
 			X: 0.5 + rand.Float64()*0.5,
@@ -77,7 +86,7 @@ func addRandomSphere(world *HittableList, center Point3, chooseMat float64, conf
 		fuzz := rand.Float64() * 0.5
 		sphereMaterial = NewMetal(albedo, fuzz)
 		world.Add(NewSphere(center, 0.2, sphereMaterial))
-	} else {
+	} else if chooseMat < dielectricThreshold {
 
 		sphereMaterial = NewDielectric(1.5)
 		world.Add(NewSphere(center, 0.2, sphereMaterial))
