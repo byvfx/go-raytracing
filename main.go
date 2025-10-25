@@ -2,66 +2,16 @@ package main
 
 import (
 	"go-raytracing/rt"
-	"math/rand"
 	"time"
 )
 
-func randomScene() *rt.HittableList {
-	world := rt.NewHittableList()
-
-	groundMaterial := rt.NewLambertian(rt.Color{X: 0.5, Y: 0.5, Z: 0.5})
-	world.Add(rt.NewPlane(rt.Point3{X: 0, Y: 0, Z: -1}, rt.Vec3{X: 0, Y: 1, Z: 0}, groundMaterial))
-
-	for a := -11; a < 11; a++ {
-		for b := -20; b < 20; b++ {
-			chooseMat := rand.Float64()
-			center := rt.Point3{
-				X: float64(a) + 0.9*rand.Float64(),
-				Y: 0.2,
-				Z: float64(b) + 0.9*rand.Float64(),
-			}
-			if center.Sub(rt.Point3{X: 4, Y: 0.2, Z: 0}).Len() > 0.9 {
-				var sphereMaterial rt.Material
-
-				if chooseMat < 0.8 {
-					albedo := rt.Color{X: rand.Float64(), Y: rand.Float64(), Z: rand.Float64()}.
-						Mult(rt.Color{X: rand.Float64(), Y: rand.Float64(), Z: rand.Float64()})
-					sphereMaterial = rt.NewLambertian((albedo))
-					// adding some movement here
-					center2 := center.Add(rt.Vec3{X: 0, Y: rt.RandomDoubleRange(0, 0.5), Z: 0})
-					world.Add(rt.NewMovingSphere(center, center2, 0.2, sphereMaterial))
-				} else if chooseMat < 0.95 {
-					albedo := rt.Color{
-						X: 0.5 + rand.Float64()*0.5,
-						Y: 0.5 + rand.Float64()*0.5,
-						Z: 0.5 + rand.Float64()*0.5,
-					}
-					fuzz := rand.Float64() * 0.5
-					sphereMaterial = rt.NewMetal(albedo, fuzz)
-					world.Add(rt.NewSphere(center, 0.2, sphereMaterial))
-				} else {
-					sphereMaterial = rt.NewDielectric(1.5)
-					world.Add(rt.NewSphere(center, 0.2, sphereMaterial))
-				}
-			}
-		}
-	}
-	material1 := rt.NewDielectric(1.5)
-	world.Add(rt.NewSphere(rt.Point3{X: 0, Y: 1, Z: 0}, 1.0, material1))
-
-	material2 := rt.NewLambertian(rt.Color{X: 0.4, Y: 0.2, Z: 0.1})
-	world.Add(rt.NewSphere(rt.Point3{X: -4, Y: 1, Z: 0}, 1.0, material2))
-
-	material3 := rt.NewMetal(rt.Color{X: 0.7, Y: 0.6, Z: 0.5}, 0.0)
-	world.Add(rt.NewSphere(rt.Point3{X: 4, Y: 1, Z: 0}, 1.0, material3))
-
-	return world
-
-}
-
 func main() {
 	startTime := time.Now()
-	world := rt.RandomScene()
+	config := rt.DefaultSceneConfig()
+	config.LambertProb = 0.7
+	config.MetalProb = 0.2
+	config.DielectricProb = 0.1
+	world := rt.RandomSceneWithConfig(config)
 
 	//material time
 	// materialGround := rt.NewLambertian(rt.Color{X: 0.5, Y: 0.5, Z: 0.0})
@@ -72,7 +22,7 @@ func main() {
 
 	// Make the camera
 	camera := rt.NewCamera()
-	camera.ApplyPreset(rt.QuickPreview())
+	camera.ApplyPreset(rt.HighQuality())
 	camera.CameraMotion = false
 	camera.LookFrom2 = rt.Point3{X: 12, Y: 2, Z: 2.5}
 	camera.LookAt2 = rt.Point3{X: 0, Y: 0, Z: 0}
