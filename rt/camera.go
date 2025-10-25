@@ -10,6 +10,9 @@ import (
 	"strings"
 )
 
+// =============================================================================
+// CAMERA STRUCT
+// =============================================================================
 type Camera struct {
 	// caps mean public
 	AspectRatio     float64
@@ -39,12 +42,14 @@ type Camera struct {
 	lookAtMotion       Ray
 }
 
+// =============================================================================
+// CONSTRUCTOR
+// =============================================================================
+
 func NewCamera() *Camera {
 	return &Camera{
-		AspectRatio: 1.0,
-		ImageWidth:  800,
-		//ImageHeight is calculated in the Initialize()
-		//ImageHeight:     0,
+		AspectRatio:     1.0,
+		ImageWidth:      800,
 		SamplesPerPixel: 10,
 		MaxDepth:        50,
 		Vfov:            90,
@@ -59,6 +64,10 @@ func NewCamera() *Camera {
 	}
 }
 
+// =============================================================================
+// CAMERA PRESETS
+// =============================================================================
+
 type CameraPreset struct {
 	AspectRatio     float64
 	ImageWidth      int
@@ -72,7 +81,7 @@ type CameraPreset struct {
 	Vup             Vec3
 }
 
-// Common camera presets
+// camera presets
 func QuickPreview() CameraPreset {
 	return CameraPreset{
 		AspectRatio:     16.0 / 9.0,
@@ -130,7 +139,44 @@ func (c *Camera) ApplyPreset(preset CameraPreset) {
 	c.Vup = preset.Vup
 }
 
-// init camera parameters
+// =============================================================================
+// BUILDER PATTERN METHODS
+// =============================================================================
+
+func NewCameraBuilder() *Camera {
+	return NewCamera()
+}
+
+func (c *Camera) SetResolution(width int, aspectRatio float64) *Camera {
+	c.ImageWidth = width
+	c.AspectRatio = aspectRatio
+	return c
+}
+
+func (c *Camera) SetQuality(samples, maxDepth int) *Camera {
+	c.SamplesPerPixel = samples
+	c.MaxDepth = maxDepth
+	return c
+}
+
+func (c *Camera) SetPosition(lookFrom, lookAt Point3, vup Vec3) *Camera {
+	c.LookFrom = lookFrom
+	c.LookAt = lookAt
+	c.Vup = vup
+	return c
+}
+
+func (c *Camera) SetLens(vfov, defocusAngle, focusDist float64) *Camera {
+	c.Vfov = vfov
+	c.DefocusAngle = defocusAngle
+	c.FocusDist = focusDist
+	return c
+}
+
+// =============================================================================
+// INITIALIZATION
+// =============================================================================
+
 func (c *Camera) Initialize() {
 
 	if c.CameraMotion {
@@ -196,6 +242,10 @@ func (c *Camera) sampleSquare() Vec3 {
 		Z: 0,
 	}
 }
+
+// =============================================================================
+// RAY GENERATION
+// =============================================================================
 
 func (c *Camera) getRay(i, j int) Ray {
 	offset := c.sampleSquare()
@@ -266,25 +316,19 @@ func (c *Camera) rayColor(r Ray, depth int, world Hittable) Color {
 		}
 		return Color{X: 0, Y: 0, Z: 0}
 	}
-
+	return c.skyColor(r)
+}
+func (c *Camera) skyColor(r Ray) Color {
 	unitDirection := r.Direction().Unit()
-	a := 0.5 * (unitDirection.Y + 1)
-
+	a := 0.5 * (unitDirection.Y + 1.0)
 	white := Color{X: 1.0, Y: 1.0, Z: 1.0}
 	blue := Color{X: 0.5, Y: 0.7, Z: 1.0}
 	return white.Scale(1.0 - a).Add(blue.Scale(a))
 }
 
-func (c *Camera) progressBar(done, total, width int) {
-	p := float64(done) / float64(total)
-	filled := min(int(p*float64(width)+0.5), width)
-	bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
-	// happy  little accident enable to see each progress step
-	//fmt.Fprintln(os.Stderr)
-	//
-	fmt.Fprintf(os.Stderr, "\r[%s] %3.0f%%  scanlines remaining: %d", bar, p*100, total-done)
-
-}
+// =============================================================================
+// RENDERING
+// =============================================================================
 
 func (c *Camera) Render(world Hittable) {
 	c.Initialize()
@@ -301,30 +345,66 @@ func (c *Camera) Render(world Hittable) {
 				r := c.getRay(i, j)
 				pixelColor = pixelColor.Add(c.rayColor(r, c.MaxDepth, world))
 			}
-
-			rgb_r, rgb_g, rgb_b := pixelColor.ToRGB(c.SamplesPerPixel)
-
-			// PNG output
-			img.Set(i, j, color.RGBA{R: uint8(rgb_r), G: uint8(rgb_g), B: uint8(rgb_b), A: 255})
-
+			c.writeColor(img, i, j, pixelColor)
 		}
 	}
 
 	fmt.Fprintln(os.Stderr)
-
-	//Write PNG file
-	outFile, err := os.Create("image.png")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating PNG file: %v\n", err)
-		return
-	}
-	defer outFile.Close()
-
-	err = png.Encode(outFile, img)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error encoding PNG: %v\n", err)
-		return
-	}
-
+	c.saveImage(img, "image.png")
 	fmt.Fprintln(os.Stdout, "Done. Image written to image.png")
+}
+
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+func (c *Camera) writeColor(img *image.RGBA, x, y int, pixelColor Color) {
+	scale := c.pixelsSamplesScale
+	r := pixelColor.X * scale
+	g := pixelColor.Y * scale
+	b := pixelColor.Z * scale
+
+	// Apply gamma correction (gamma = 2.0)
+	r = linearToGamma(r)
+	g = linearToGamma(g)
+	b = linearToGamma(b)
+
+	// Clamp to [0, 1] and convert to [0, 255]
+	intensity := NewInterval(0.0, 0.999)
+	rByte := uint8(256 * intensity.Clamp(r))
+	gByte := uint8(256 * intensity.Clamp(g))
+	bByte := uint8(256 * intensity.Clamp(b))
+
+	img.SetRGBA(x, y, color.RGBA{R: rByte, G: gByte, B: bByte, A: 255})
+}
+
+func linearToGamma(linearComponent float64) float64 {
+	if linearComponent > 0 {
+		return math.Sqrt(linearComponent)
+	}
+	return 0
+}
+
+func (c *Camera) saveImage(img *image.RGBA, filename string) {
+	file, err := os.Create(filename)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	if err := png.Encode(file, img); err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("Image saved to %s\n", filename)
+}
+
+func (c *Camera) progressBar(done, total, width int) {
+	p := float64(done) / float64(total)
+	filled := min(int(p*float64(width)+0.5), width)
+	bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
+	// happy  little accident enable to see each progress step
+	//fmt.Fprintln(os.Stderr)
+	//
+	fmt.Fprintf(os.Stderr, "\r[%s] %3.0f%%  scanlines remaining: %d", bar, p*100, total-done)
+
 }
