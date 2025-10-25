@@ -6,6 +6,7 @@ type Plane struct {
 	Point  Point3
 	Normal Vec3
 	Mat    Material
+	bbox   AABB
 }
 
 func NewPlane(point Point3, normal Vec3, mat Material) *Plane {
@@ -13,7 +14,11 @@ func NewPlane(point Point3, normal Vec3, mat Material) *Plane {
 		Point:  point,
 		Normal: normal.Unit(),
 		Mat:    mat,
+		bbox:   NewAABBFromIntervals(UniverseInterval, UniverseInterval, UniverseInterval),
 	}
+}
+func (p *Plane) BoundingBox() AABB {
+	return p.bbox
 }
 
 func (p *Plane) Hit(r Ray, rayT Interval, rec *HitRecord) bool {

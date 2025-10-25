@@ -39,7 +39,13 @@ func NewAABBFromPoints(a, b Point3) AABB {
 
 	return AABB{X: x, Y: y, Z: z}
 }
-
+func NewAABBFromBoxes(box0, box1 AABB) AABB {
+	return AABB{
+		X: NewIntervalFromIntervals(box0.X, box1.X),
+		Y: NewIntervalFromIntervals(box0.Y, box1.Y),
+		Z: NewIntervalFromIntervals(box0.Z, box1.Z),
+	}
+}
 func (box AABB) AxisInterval(n int) Interval {
 	if n == 1 {
 		return box.Y

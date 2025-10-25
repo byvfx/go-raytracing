@@ -23,6 +23,19 @@ func NewInterval(min, max float64) Interval {
 func NewEmptyInterval() Interval {
 	return EmptyInterval
 }
+func NewIntervalFromIntervals(a, b Interval) Interval {
+	min := a.Min
+	if b.Min < a.Min {
+		min = b.Min
+	}
+
+	max := a.Max
+	if b.Max > a.Max {
+		max = b.Max
+	}
+
+	return Interval{Min: min, Max: max}
+}
 
 func (i Interval) Expand(delta float64) Interval {
 	padding := delta

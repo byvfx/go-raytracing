@@ -8,9 +8,9 @@ import (
 func main() {
 	startTime := time.Now()
 	config := rt.DefaultSceneConfig()
-	config.LambertProb = 0.7
-	config.MetalProb = 0.2
-	config.DielectricProb = 0.1
+	config.LambertProb = 1.0
+	config.MetalProb = 0.1
+	config.DielectricProb = 1.0
 	world := rt.RandomSceneWithConfig(config)
 
 	//material time
@@ -22,7 +22,7 @@ func main() {
 
 	// Make the camera
 	camera := rt.NewCamera()
-	camera.ApplyPreset(rt.HighQuality())
+	camera.ApplyPreset(rt.QuickPreview())
 	camera.CameraMotion = false
 	camera.LookFrom2 = rt.Point3{X: 12, Y: 2, Z: 2.5}
 	camera.LookAt2 = rt.Point3{X: 0, Y: 0, Z: 0}

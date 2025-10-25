@@ -12,6 +12,7 @@ type HitRecord struct {
 // Hittable interface for objects that can be hit by rays
 type Hittable interface {
 	Hit(r Ray, rayT Interval, rec *HitRecord) bool
+	BoundingBox() AABB
 }
 
 func (rec *HitRecord) SetFaceNormal(r Ray, outwardNormal Vec3) {

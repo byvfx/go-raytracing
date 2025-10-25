@@ -2,17 +2,24 @@ package rt
 
 type HittableList struct {
 	Objects []Hittable
+	bbox    AABB
 }
 
 func NewHittableList() *HittableList {
 	return &HittableList{
 		Objects: make([]Hittable, 0),
+		bbox:    NewAABB(),
 	}
 }
 
 // Add adds a hittable object to the list
 func (hl *HittableList) Add(object Hittable) {
 	hl.Objects = append(hl.Objects, object)
+	hl.bbox = NewAABBFromBoxes(hl.bbox, object.BoundingBox())
+}
+
+func (hl *HittableList) BoundingBox() AABB {
+	return hl.bbox
 }
 
 // Clear removes all objects from the list
