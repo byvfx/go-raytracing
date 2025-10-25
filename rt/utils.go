@@ -21,6 +21,9 @@ func RandomDouble() float64 {
 func RandomDoubleRange(min, max float64) float64 {
 	return min + (max-min)*RandomDouble()
 }
+func RandomInt(min, max int) int {
+	return min + rand.Intn(max-min+1)
+}
 
 // PrintRenderSettings displays all camera and scene settings before rendering
 func PrintRenderSettings(camera *Camera, objectCount int) {

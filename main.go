@@ -12,6 +12,7 @@ func main() {
 	config.MetalProb = 0.1
 	config.DielectricProb = 1.0
 	world := rt.RandomSceneWithConfig(config)
+	bvh := rt.NewBVHNodeFromList(world)
 
 	//material time
 	// materialGround := rt.NewLambertian(rt.Color{X: 0.5, Y: 0.5, Z: 0.0})
@@ -22,7 +23,7 @@ func main() {
 
 	// Make the camera
 	camera := rt.NewCamera()
-	camera.ApplyPreset(rt.QuickPreview())
+	camera.ApplyPreset(rt.StandardQuality())
 	camera.CameraMotion = false
 	camera.LookFrom2 = rt.Point3{X: 12, Y: 2, Z: 2.5}
 	camera.LookAt2 = rt.Point3{X: 0, Y: 0, Z: 0}
@@ -62,7 +63,7 @@ func main() {
 
 	rt.PrintRenderSettings(camera, len(world.Objects))
 
-	camera.Render(world)
+	camera.Render(bvh)
 	elapsed := time.Since(startTime)
 
 	rt.PrintRenderStats(elapsed, camera.ImageWidth, camera.ImageHeight)

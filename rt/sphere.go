@@ -12,7 +12,7 @@ type Sphere struct {
 
 // NewSphere creates a new sphere with the given center and radius and material
 func NewSphere(center Point3, radius float64, mat Material) *Sphere {
-	rvec := Vec3{X: 0, Y: 0, Z: 0}
+	rvec := Vec3{X: radius, Y: radius, Z: radius}
 	return &Sphere{
 		Center: NewRay(center, Vec3{X: 0, Y: 0, Z: 0}, 0),
 		Radius: math.Max(0, radius),
