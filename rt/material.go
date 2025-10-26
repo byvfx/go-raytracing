@@ -7,21 +7,30 @@ type Material interface {
 }
 
 type Lambertian struct {
-	Albedo Color
+	tex Texture
 }
 
 func NewLambertian(albedo Color) *Lambertian {
 	return &Lambertian{
-		Albedo: albedo,
+		tex: NewSolidColor(albedo),
 	}
 }
 
+func NewLambertianTexture(tex Texture) *Lambertian {
+	return &Lambertian{
+		tex: tex,
+	}
+}
 func (l *Lambertian) Scatter(rIn Ray, rec *HitRecord, attenuation *Color, scattered *Ray) bool {
 	scatterDirection := rec.Normal.Add(RandomUnitVector())
 
+	if scatterDirection.NearZero() {
+		scatterDirection = rec.Normal
+	}
+
 	*scattered = NewRay(rec.P, scatterDirection, rIn.Time())
 
-	*attenuation = l.Albedo
+	*attenuation = l.tex.Value(rec.U, rec.V, rec.P)
 
 	return true
 }
