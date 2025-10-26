@@ -5,6 +5,8 @@ type HitRecord struct {
 	P         Point3 // Point of intersection
 	Normal    Vec3
 	Mat       Material
+	U         float64
+	V         float64
 	T         float64 // Parameter t where intersection occurs
 	FrontFace bool
 }
