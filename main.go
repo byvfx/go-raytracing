@@ -11,7 +11,7 @@ func main() {
 	config.LambertProb = 1.0
 	config.MetalProb = 0.1
 	config.DielectricProb = 1.0
-	world := rt.RandomSceneWithConfig(config)
+	world := rt.CheckeredSpheresScene()
 	bvh := rt.NewBVHNodeFromList(world)
 
 	//material time
@@ -23,9 +23,9 @@ func main() {
 
 	// Make the camera
 	camera := rt.NewCamera()
-	camera.ApplyPreset(rt.StandardQuality())
+	camera.ApplyPreset(rt.QuickPreview())
 	camera.CameraMotion = false
-	camera.LookFrom2 = rt.Point3{X: 12, Y: 2, Z: 2.5}
+	camera.LookFrom2 = rt.Point3{X: 12, Y: 2, Z: 3}
 	camera.LookAt2 = rt.Point3{X: 0, Y: 0, Z: 0}
 	camera.Initialize()
 
