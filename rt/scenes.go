@@ -39,7 +39,12 @@ func RandomScene() *HittableList {
 
 func RandomSceneWithConfig(config SceneConfig) *HittableList {
 	world := NewHittableList()
-	groundMaterial := NewLambertian(config.GroundColor)
+	groundChecker := NewCheckerTextureFromColors(
+		0.32,
+		config.GroundColor,
+		Color{X: 0.9, Y: 0.9, Z: 0.9},
+	)
+	groundMaterial := NewLambertianTexture(groundChecker)
 	world.Add(NewPlane(Point3{X: 0, Y: 0, Z: -1}, Vec3{X: 0, Y: 1, Z: 0}, groundMaterial))
 
 	for a := config.SphereGridBounds.MinA; a < config.SphereGridBounds.MaxA; a++ {
@@ -106,6 +111,27 @@ func addLargeSpheres(world *HittableList, y float64) {
 	material3 := NewMetal(Color{X: 0.7, Y: 0.6, Z: 0.5}, 0.0)
 	world.Add(NewSphere(Point3{X: 4, Y: y, Z: 0}, 1.0, material3))
 }
+
+func CheckeredSpheresScene() *HittableList {
+	world := NewHittableList()
+
+	checker := NewCheckerTextureFromColors(
+		0.32,
+		Color{X: 0.2, Y: 0.3, Z: 0.1},
+		Color{X: 0.9, Y: 0.9, Z: 0.9},
+	)
+
+	checkerMaterial := NewLambertianTexture(checker)
+
+	// Bottom sphere (at y=-10)
+	world.Add(NewSphere(Point3{X: 0, Y: -10, Z: 0}, 10, checkerMaterial))
+
+	// Top sphere (at y=10)
+	world.Add(NewSphere(Point3{X: 0, Y: 10, Z: 0}, 10, checkerMaterial))
+
+	return world
+}
+
 func SimpleScene() *HittableList {
 	world := NewHittableList()
 
