@@ -88,6 +88,7 @@ func (s *Sphere) Hit(r Ray, rayT Interval, rec *HitRecord) bool {
 	rec.P = r.At(rec.T)
 	outwardNormal := rec.P.Sub(sphereCenter).Div(s.Radius)
 	rec.SetFaceNormal(r, outwardNormal)
+	rec.U, rec.V = getSphereUV(outwardNormal)
 	rec.Mat = s.Mat
 	return true
 }
