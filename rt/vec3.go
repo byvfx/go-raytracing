@@ -37,6 +37,11 @@ func (v Vec3) Unit() Vec3 {
 	return v.Div(l)
 }
 
+func (v Vec3) NearZero() bool {
+	s := 1e-8
+	return math.Abs(v.X) < s && math.Abs(v.Y) < s && math.Abs(v.Z) < s
+}
+
 func RandomUnitVector() Vec3 {
 	for {
 		p := RandomVec3Range(-1, 1)
