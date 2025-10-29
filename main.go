@@ -1,70 +1,123 @@
 package main
 
 import (
+	"fmt"
 	"go-raytracing/rt"
+	"image"
+	"image/color"
+	"image/png"
+	"os"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
+
+type RaytracerApp struct {
+	framebuffer *image.RGBA
+	camera      *rt.Camera
+	world       rt.Hittable
+	currentRow  int
+	completed   bool
+}
+
+func (app *RaytracerApp) Update() error {
+	// Render one scanline per frame for progressive display
+	if app.currentRow < app.camera.ImageHeight {
+		app.renderScanline(app.currentRow)
+		app.currentRow++
+
+		// Check if rendering is complete
+		if app.currentRow >= app.camera.ImageHeight && !app.completed {
+			app.completed = true
+			app.saveImage()
+		}
+	}
+	return nil
+}
+
+func (app *RaytracerApp) Draw(screen *ebiten.Image) {
+	screen.WritePixels(app.framebuffer.Pix)
+}
+
+func (app *RaytracerApp) Layout(w, h int) (int, int) {
+	return app.camera.ImageWidth, app.camera.ImageHeight
+}
+
+func (app *RaytracerApp) renderScanline(j int) {
+	for i := 0; i < app.camera.ImageWidth; i++ {
+		pixelColor := rt.Color{X: 0, Y: 0, Z: 0}
+
+		for sample := 0; sample < app.camera.SamplesPerPixel; sample++ {
+			r := app.camera.GetRay(i, j)
+			pixelColor = pixelColor.Add(app.camera.RayColor(r, app.camera.MaxDepth, app.world))
+		}
+
+		scale := 1.0 / float64(app.camera.SamplesPerPixel)
+		pixelColor = pixelColor.Scale(scale)
+
+		app.framebuffer.Set(i, j, color.RGBA{
+			R: uint8(256 * rt.Clamp(rt.LinearToGamma(pixelColor.X), 0, 0.999)),
+			G: uint8(256 * rt.Clamp(rt.LinearToGamma(pixelColor.Y), 0, 0.999)),
+			B: uint8(256 * rt.Clamp(rt.LinearToGamma(pixelColor.Z), 0, 0.999)),
+			A: 255,
+		})
+	}
+}
+
+func (app *RaytracerApp) saveImage() {
+	file, err := os.Create("image.png")
+	if err != nil {
+		fmt.Printf("Error creating image file: %v\n", err)
+		return
+	}
+	defer file.Close()
+
+	if err := png.Encode(file, app.framebuffer); err != nil {
+		fmt.Printf("Error encoding PNG: %v\n", err)
+		return
+	}
+
+	fmt.Println("\n✓ Image saved to image.png")
+}
 
 func main() {
 	startTime := time.Now()
-	config := rt.DefaultSceneConfig()
-	config.LambertProb = 1.0
-	config.MetalProb = 0.1
-	config.DielectricProb = 1.0
-	world := rt.CheckeredSpheresScene()
+
+	// Create scene
+	world := rt.RandomScene()
 	bvh := rt.NewBVHNodeFromList(world)
 
-	//material time
-	// materialGround := rt.NewLambertian(rt.Color{X: 0.5, Y: 0.5, Z: 0.0})
-	// materialCenter := rt.NewLambertian(rt.Color{X: 1.0, Y: 0.5, Z: 0.0})
-	// materialLeft := rt.NewDielectric(1.5)
-	// materialBubble := rt.NewDielectric(1.0 / 1.5)
-	// materialRight := rt.NewMetal(rt.Color{X: 1.0, Y: 1.0, Z: 1.0}, 0.0)
-
-	// Make the camera
+	// Configure camera
 	camera := rt.NewCamera()
-	camera.ApplyPreset(rt.QuickPreview())
+	camera.ApplyPreset(rt.StandardQuality())
 	camera.CameraMotion = false
-	camera.LookFrom2 = rt.Point3{X: 12, Y: 2, Z: 3}
-	camera.LookAt2 = rt.Point3{X: 0, Y: 0, Z: 0}
+	camera.LookFrom = rt.Point3{X: 12, Y: 2, Z: 3}
+	camera.LookAt = rt.Point3{X: 0, Y: 0, Z: 0}
 	camera.Initialize()
-
-	// camera.AspectRatio = 16.0 / 9.0
-	// camera.ImageWidth = 600
-	// camera.SamplesPerPixel = 200
-	// camera.MaxDepth = 50
-	// camera.Vfov = 20
-	// camera.DefocusAngle = 0.75
-	// camera.FocusDist = 10.0
-	// camera.CameraMotion = true
-
-	//position camera
-	// camera.LookFrom = rt.Point3{X: 13, Y: 2, Z: 3}
-	// camera.LookFrom2 = rt.Point3{X: 12, Y: 2, Z: 2.5} // Move forward
-	// camera.LookAt = rt.Point3{X: 0, Y: 0, Z: 0}
-	// camera.LookAt2 = rt.Point3{X: 0, Y: 0, Z: 0}
-
-	//camera.LookFrom = rt.Point3{X: -2, Y: 2, Z: 1}
-	//camera.LookAt = rt.Point3{X: 0, Y: 0, Z: -1}
-	//camera.Vup = rt.Vec3{X: 0, Y: 1, Z: 0}
-
-	// Sphere time!
-
-	// world := rt.NewHittableList()
-
-	//world.Add(rt.NewSphere(rt.Point3{X: 0, Y: -100.5, Z: -1}, 100, materialGround))
-	// world.Add(rt.NewPlane(rt.Point3{X: 0, Y: -0.5, Z: -1}, rt.Vec3{X: 0, Y: 1, Z: 0}, materialGround))
-	// world.Add(rt.NewSphere(rt.Point3{X: 0, Y: 0, Z: -1}, 0.5, materialCenter))
-	// world.Add(rt.NewSphere(rt.Point3{X: -1, Y: 0, Z: -1}, 0.5, materialLeft))
-	// world.Add(rt.NewSphere(rt.Point3{X: -1, Y: 0, Z: -1}, 0.4, materialBubble))
-	// world.Add(rt.NewSphere(rt.Point3{X: 1, Y: 0, Z: -1}, 0.5, materialRight))
-
-	// Render time
 
 	rt.PrintRenderSettings(camera, len(world.Objects))
 
-	camera.Render(bvh)
-	elapsed := time.Since(startTime)
+	// Create framebuffer
+	framebuffer := image.NewRGBA(image.Rect(0, 0, camera.ImageWidth, camera.ImageHeight))
 
+	// Create Ebiten app
+	app := &RaytracerApp{
+		framebuffer: framebuffer,
+		camera:      camera,
+		world:       bvh,
+		currentRow:  0,
+		completed:   false,
+	}
+
+	// Set window properties
+	ebiten.SetWindowSize(camera.ImageWidth, camera.ImageHeight)
+	ebiten.SetWindowTitle("Go Raytracer - Progressive Scanline Rendering")
+
+	// Run the game loop
+	if err := ebiten.RunGame(app); err != nil {
+		panic(err)
+	}
+
+	elapsed := time.Since(startTime)
 	rt.PrintRenderStats(elapsed, camera.ImageWidth, camera.ImageHeight)
 }
