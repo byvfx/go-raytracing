@@ -2,6 +2,7 @@ package rt
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"time"
 )
@@ -60,13 +61,32 @@ func FormatDuration(d time.Duration) string {
 }
 
 // PrintRenderStats displays render completion statistics
-func PrintRenderStats(elapsed time.Duration, imageWidth, imageHeight int) {
-	fmt.Println("\n========================================")
-	fmt.Println("         RENDER COMPLETE!")
+func PrintRenderStats(elapsed time.Duration, width, height int) {
 	fmt.Println("========================================")
-	fmt.Printf("Total Render Time:  %s\n", FormatDuration(elapsed))
-	totalPixels := imageWidth * imageHeight
-	fmt.Printf("Total Pixels:       %d\n", totalPixels)
-	fmt.Printf("Average per pixel:  %.2fms\n", elapsed.Seconds()*1000/float64(totalPixels))
+	fmt.Println("RENDER COMPLETE")
 	fmt.Println("========================================")
+	totalPixels := width * height
+	pixelsPerSecond := float64(totalPixels) / elapsed.Seconds()
+	fmt.Printf("Total Time:      %s\n", FormatDuration(elapsed))
+	fmt.Printf("Total Pixels:    %d\n", totalPixels)
+	fmt.Printf("Pixels/Second:   %.0f\n", pixelsPerSecond)
+	fmt.Println("========================================")
+}
+
+func Clamp(x, min, max float64) float64 {
+	if x < min {
+		return min
+	}
+	if x > max {
+		return max
+	}
+	return x
+}
+
+// LinearToGamma converts linear color to gamma-corrected color
+func LinearToGamma(linear float64) float64 {
+	if linear > 0 {
+		return math.Sqrt(linear)
+	}
+	return 0
 }
