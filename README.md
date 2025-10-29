@@ -1,230 +1,158 @@
 # Go Raytracing
 
-A Go implementation following the "Ray Tracing in One Weekend" tutorial by Peter Shirley.
-
-## Overview
-
-This project implements a raytracer that generates PNG image files. The implementation features a fully positionable camera with adjustable field of view, rendering spheres with different materials (diffuse, metallic, and glass) against a sky gradient background.
+Go raytracer following "Ray Tracing in One Weekend" series by Peter Shirley.
 
 ## Requirements
 
-- Go 1.25.1 or later
+- Go 1.25.1+
+- Ebiten v2 for progressive display
 
-## Building and Running
-
-1. Clone or download this repository
-2. Navigate to the project directory
-3. Run the program:
+## Running
 
 ```bash
 go run main.go
 ```
 
-The program will generate an `image.png` file in the same directory.
-
-## Latest Render
-
-![Rendered Scene](image.png)
+Renders to window with progressive scanline display. Saves final image as `image.png`.
 
 ## Features
 
-### Camera System
+### Rendering
 
-#### Positionable Camera
+- Progressive scanline rendering with live preview (Ebiten)
+- Anti-aliasing via multi-sampling (configurable samples/pixel)
+- Gamma correction (gamma 2.0)
+- Max ray depth control for indirect lighting
 
-- **Position control**: Place the camera anywhere in 3D space using `LookFrom`
-- **Look-at targeting**: Point the camera at any location using `LookAt`
-- **Adjustable field of view**: Control zoom level with `Vfov` (vertical field of view in degrees)
-- **Camera orientation**: Define "up" direction with `Vup` vector
-- **Aspect ratio control**: Set image dimensions with `AspectRatio` and `ImageWidth`
-- **Depth of field**: Adjust focus distance and defocus angle for realistic lens effects
-- **Motion blur**: Support for camera movement during exposure time
+### Camera
 
-#### Camera Presets
+- Positionable in 3D space (`LookFrom`, `LookAt`)
+- Adjustable field of view (`Vfov`)
+- Depth of field (defocus blur via `DefocusAngle`, `FocusDist`)
+- Camera motion blur support
 
-Three quality presets are available for quick configuration:
+**Presets:**
 
-```go
-// Quick preview - low quality, fast render
-camera.ApplyPreset(rt.QuickPreview())
-// Resolution: 400x225, 10 samples, 10 max depth
+- `QuickPreview()` - 400x225, 10 samples, 10 depth
+- `StandardQuality()` - 600x338, 100 samples, 50 depth, DOF enabled
+- `HighQuality()` - 1200x675, 500 samples, 50 depth, DOF enabled
 
-// Standard quality - balanced settings
-camera.ApplyPreset(rt.StandardQuality())
-// Resolution: 600x338, 100 samples, 50 max depth, depth of field enabled
-
-// High quality - production renders
-camera.ApplyPreset(rt.HighQuality())
-// Resolution: 1200x675, 500 samples, 50 max depth, depth of field enabled
-```
-
-#### Builder Pattern API
-
-Configure cameras with a fluent interface:
+**Builder API:**
 
 ```go
 camera := rt.NewCamera().
-    WithResolution(800, 16.0/9.0).
-    WithQuality(100, 50).
-    WithPosition(
+    SetResolution(800, 16.0/9.0).
+    SetQuality(100, 50).
+    SetPosition(
         rt.Point3{X: 13, Y: 2, Z: 3},
         rt.Point3{X: 0, Y: 0, Z: 0},
         rt.Vec3{X: 0, Y: 1, Z: 0},
     ).
-    WithLens(20, 0.6, 10.0).
-    WithMotionBlur(
-        rt.Point3{X: 13, Y: 2.5, Z: 3},
-        rt.Point3{X: 0, Y: 0, Z: 0},
-    )
+    SetLens(20, 0.6, 10.0)
 ```
 
 ### Materials
 
-- **Lambertian (Diffuse)**: Matte surfaces that scatter light randomly
-- **Metal**: Reflective surfaces with adjustable fuzziness
-- **Dielectric (Glass)**: Transparent materials with refraction and reflection
-  - Supports realistic Fresnel effects (Schlick's approximation)
-  - Can create hollow glass spheres (bubble effect)
-  
-### Acceleration Structures
+- **Lambertian** - Diffuse/matte surfaces
+- **Metal** - Reflective surfaces w/ adjustable fuzz
+- **Dielectric** - Glass/transparent materials w/ refraction, Fresnel effects (Schlick approximation), hollow sphere support
 
-#### Bounding Volume Hierarchy (BVH)
+### Textures
 
-The raytracer implements a BVH tree structure for efficient ray-object intersection testing:
+- **SolidColor** - Uniform color
+- **CheckerTexture** - 3D procedural checkerboard
+- **ImageTexture** - Image-based textures (PNG/JPEG support)
 
-- **Automatic construction**: Build BVH from any scene with `NewBVHNodeFromList()`
-- **Recursive subdivision**: Objects are recursively partitioned along random axes
-- **Tight bounding boxes**: Each node maintains minimal bounding volumes
-- **Fast ray culling**: Skip entire branches of the tree when rays miss bounding boxes
+### Acceleration
 
-Performance improvement: BVH acceleration typically provides 10-100x speedup for scenes with hundreds of objects.
+**BVH (Bounding Volume Hierarchy):**
+
+- Automatic construction from scene
+- Recursive axis-aligned subdivision
+- Ray culling via bounding box tests
+- 10-100x speedup for large scenes
 
 ```go
+bvh := rt.NewBVHNodeFromList(world)
+```
+
+### Geometry
+
+- **Sphere** - Static and moving spheres
+- **Plane** - Infinite planes
+- All objects have axis-aligned bounding boxes
+
+### Scenes
+
+Predefined scenes:
+
+- `RandomScene()` - Configurable random sphere distribution
+- `CheckeredSpheresScene()` - Two checkered spheres
+- `SimpleScene()` - Basic test scene
+
+`SceneConfig` allows control over material probabilities, motion blur per material, grid bounds, etc.
+
+## Usage
+
+```go
+// Basic setup
 world := rt.RandomScene()
 bvh := rt.NewBVHNodeFromList(world)
-camera.Render(bvh)
+
+camera := rt.NewCamera()
+camera.ApplyPreset(rt.StandardQuality())
+camera.LookFrom = rt.Point3{X: 13, Y: 2, Z: 3}
+camera.LookAt = rt.Point3{X: 0, Y: 0, Z: 0}
+camera.Initialize()
+
+renderer := rt.NewProgressiveRenderer(camera, bvh)
+ebiten.RunGame(renderer)
 ```
 
-#### Bounding Boxes
-
-All objects implement bounding box calculations:
-
-- **Spheres**: Tight axis-aligned bounding boxes
-- **Moving spheres**: Boxes encompass entire motion from time=0 to time=1
-- **Planes**: Infinite bounding boxes
-- **Lists**: Combined boxes of all children
-
-### Rendering Quality
-
-- **Anti-aliasing**: Configurable samples per pixel (default: 100)
-- **Ray bouncing**: Adjustable maximum ray depth for indirect lighting (default: 50)
-- **Gamma correction**: Automatic gamma 2.0 correction for realistic color output
-- **Progress indicator**: Real-time rendering progress bar
-
-## Output
-
-The current implementation generates configurable resolution images:
-
-- Ground Plane: Large yellow-green diffuse plane
-- Center sphere: Blue diffuse material
-- Left sphere: Glass material with hollow bubble effect
-- Right sphere: Shiny gold metal
-- Spheres that have random materials added to them
-- Random Lambert spheres with some velocity to test motion blur
-
-The image is saved as `image.png` in PNG format for easy viewing.
-
-## Customization
-
-### Basic Scene Setup
+**Custom scene config:**
 
 ```go
-// Create custom materials
-materialGlass := rt.NewDielectric(1.5)
-materialMetal := rt.NewMetal(rt.Color{X: 0.8, Y: 0.6, Z: 0.2}, 0.0)
-materialMatte := rt.NewLambertian(rt.Color{X: 0.7, Y: 0.3, Z: 0.3})
-
-// Add spheres to the scene
-world := rt.NewHittableList()
-world.Add(rt.NewSphere(rt.Point3{X: 0, Y: 0, Z: -1}, 0.5, materialGlass))
-world.Add(rt.NewMovingSphere(center1, center2, 0.2, materialMatte))
-
-// Build BVH for acceleration
-bvh := rt.NewBVHNodeFromList(world)
-```
-
-### Advanced Scene Configuration
-
-```go
-// Create custom scene with specific material distribution
 config := rt.DefaultSceneConfig()
-config.DiffuseProb = 0.50
-config.MetalProb = 0.30
-config.GlassProb = 0.20
+config.LambertProb = 0.5
+config.MetalProb = 0.3
+config.DielectricProb = 0.2
 config.SphereGridBounds.MinA = -5
 config.SphereGridBounds.MaxA = 5
-config.DiffuseMotionBlur = true
-config.MetalMotionBlur = false
-config.GlassMotionBlur = false
-
 world := rt.RandomSceneWithConfig(config)
 ```
 
-### Camera Configuration
+## Implementation Status
 
-```go
-camera := rt.NewCamera()
-camera.ApplyPreset(rt.StandardQuality())
+**Ray Tracing in One Weekend:**
 
-// Override specific settings
-camera.Vfov = 20
-camera.LookFrom = rt.Point3{X: 13, Y: 2, Z: 3}
-camera.LookAt = rt.Point3{X: 0, Y: 0, Z: 0}
-camera.DefocusAngle = 0.6
-camera.FocusDist = 10.0
+- [x] PNG output
+- [x] Vec3/ray math
+- [x] Sphere rendering
+- [x] Surface normals
+- [x] Anti-aliasing
+- [x] Diffuse materials
+- [x] Metal materials
+- [x] Dielectric materials
+- [x] Positionable camera
+- [x] Depth of field
 
-camera.Initialize()
-camera.Render(bvh)
-```
+**Ray Tracing: The Next Week:**
 
-## Progress
-
-### Ray Tracing in One Weekend
-
-- [x] Basic image output (PNG format)
-- [x] Progress indicator
-- [x] Vector math utilities
-- [x] Ray class
-- [x] Simple sphere rendering
-- [x] Surface normals and shading
-- [x] Anti-aliasing (multi-sampling)
-- [x] Diffuse materials (Lambertian)
-- [x] Metal materials (with fuzziness)
-- [x] Dielectric materials (glass with refraction)
-- [x] Camera positioning (positionable camera)
-- [x] Adjustable field of view
-- [x] Defocus blur (depth of field)
-
-### Ray Tracing: The Next Week
-
-- [x] Motion blur
-- [x] Bounding Volume Hierarchies (BVH)
-- [ ] Image texture mapping
+- [x] Motion blur (object + camera)
+- [x] BVH acceleration
+- [x] Texture system (solid, checker, image)
 - [ ] Perlin noise
 - [ ] Quadrilaterals
 - [ ] Lights
-- [ ] Instances
-- [ ] Cornell Box scene
-- [ ] Volumes
+- [ ] Instances (translation/rotation)
+- [ ] Volumes (fog/smoke)
 
-## Performance Notes
+**Additional:**
 
-Rendering time depends on:
-
-- Image resolution (`ImageWidth` × calculated height)
-- Samples per pixel (`SamplesPerPixel`)
-- Maximum ray depth (`MaxDepth`)
-- Scene complexity (number of objects)
+- [x] Progressive rendering w/ Ebiten
+- [x] Plane primitive
+- [x] Scene configuration system
+- [x] Builder pattern API
 
 ## Resources
 
@@ -233,4 +161,4 @@ Rendering time depends on:
 
 ## License
 
-This project is for educational purposes following the public domain tutorial "Ray Tracing in One Weekend" and "RayTracing: The Next Week"
+Educational purposes, following public domain tutorial series.
