@@ -247,7 +247,7 @@ func (c *Camera) sampleSquare() Vec3 {
 // RAY GENERATION
 // =============================================================================
 
-func (c *Camera) getRay(i, j int) Ray {
+func (c *Camera) GetRay(i, j int) Ray {
 	offset := c.sampleSquare()
 	rayTime := RandomDouble()
 
@@ -300,7 +300,7 @@ func (c *Camera) getRay(i, j int) Ray {
 }
 
 // sending out them color rays
-func (c *Camera) rayColor(r Ray, depth int, world Hittable) Color {
+func (c *Camera) RayColor(r Ray, depth int, world Hittable) Color {
 	if depth <= 0 {
 		return Color{X: 0, Y: 0, Z: 0}
 	}
@@ -312,7 +312,7 @@ func (c *Camera) rayColor(r Ray, depth int, world Hittable) Color {
 		var scattered Ray
 
 		if rec.Mat.Scatter(r, rec, &attenuation, &scattered) {
-			return attenuation.Mult(c.rayColor(scattered, depth-1, world))
+			return attenuation.Mult(c.RayColor(scattered, depth-1, world))
 		}
 		return Color{X: 0, Y: 0, Z: 0}
 	}
@@ -342,8 +342,8 @@ func (c *Camera) Render(world Hittable) {
 		for i := range c.ImageWidth {
 			pixelColor := Color{X: 0, Y: 0, Z: 0}
 			for sample := 0; sample < c.SamplesPerPixel; sample++ {
-				r := c.getRay(i, j)
-				pixelColor = pixelColor.Add(c.rayColor(r, c.MaxDepth, world))
+				r := c.GetRay(i, j)
+				pixelColor = pixelColor.Add(c.RayColor(r, c.MaxDepth, world))
 			}
 			c.writeColor(img, i, j, pixelColor)
 		}
