@@ -31,6 +31,7 @@ func NewSolidColorRGB(red, green, blue float64) *SolidColor {
 func (s *SolidColor) Value(u, v float64, p Point3) Color {
 	return s.Albedo
 }
+
 func NewCheckerTexture(scale float64, even, odd Texture) *CheckerTexture {
 	return &CheckerTexture{
 		invScale: 1.0 / scale,
@@ -38,8 +39,13 @@ func NewCheckerTexture(scale float64, even, odd Texture) *CheckerTexture {
 		odd:      odd,
 	}
 }
+
 func NewCheckerTextureFromColors(scale float64, c1, c2 Color) *CheckerTexture {
-	return NewCheckerTexture(scale, NewSolidColor(c1), NewSolidColor(c2))
+	return NewCheckerTexture(
+		scale,
+		NewSolidColor(c1),
+		NewSolidColor(c2),
+	)
 }
 
 func (c *CheckerTexture) Value(u, v float64, p Point3) Color {
