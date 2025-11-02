@@ -1,3 +1,5 @@
+//TODO: add cameras that corresspond with each scene.
+
 package rt
 
 import (
@@ -14,8 +16,6 @@ type SceneConfig struct {
 	LargeSpheresY    float64
 }
 
-// TODO add  lambert and dieelectric probabilty
-// settting default values
 func DefaultSceneConfig() SceneConfig {
 	return SceneConfig{
 		GroundColor: Color{X: 0.5, Y: 0.5, Z: 0.5},
@@ -148,4 +148,29 @@ func SimpleScene() *HittableList {
 	world.Add(NewSphere(Point3{X: 1, Y: 0, Z: -1}, 0.5, materialRight))
 
 	return world
+}
+func EarthScene() *HittableList {
+	world := NewHittableList()
+
+	earthTexture := NewImageTexture("earthmap.jpg")
+	earthSurface := NewLambertianTexture(earthTexture)
+	globe := NewSphere(Point3{X: 0, Y: 0, Z: 0}, 2, earthSurface)
+
+	world.Add(globe)
+	return world
+}
+func EarthCamera() *Camera {
+	camera := NewCamera()
+	camera.AspectRatio = 16.0 / 9.0
+	camera.ImageWidth = 800
+	camera.SamplesPerPixel = 100
+	camera.MaxDepth = 50
+	camera.Vfov = 20
+	camera.LookFrom = Point3{X: 0, Y: 0, Z: 12}
+	camera.LookAt = Point3{X: 0, Y: 0, Z: 0}
+	camera.Vup = Vec3{X: 0, Y: 1, Z: 0}
+	camera.DefocusAngle = 0
+	camera.Initialize()
+
+	return camera
 }
