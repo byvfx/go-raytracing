@@ -11,17 +11,18 @@ func main() {
 	startTime := time.Now()
 
 	// Create scene
-	world := rt.RandomScene()
+	world := rt.EarthScene()
 	bvh := rt.NewBVHNodeFromList(world)
 
-	// Configure camera
-	camera := rt.NewCamera()
-	camera.ApplyPreset(rt.QuickPreview())
-	camera.ImageWidth = 1000
-	camera.CameraMotion = false
-	camera.LookFrom = rt.Point3{X: 12, Y: 2, Z: 3}
-	camera.LookAt = rt.Point3{X: 0, Y: 0, Z: 0}
-	camera.Initialize()
+	// Configure camera with Earth scene settings
+	camera := rt.EarthCamera()
+	// Or use custom settings:
+	// camera := rt.NewCamera()
+	// camera.ApplyPreset(rt.QuickPreview())
+	// camera.ImageWidth = 1000
+	// camera.LookFrom = rt.Point3{X: 0, Y: 0, Z: 12}
+	// camera.LookAt = rt.Point3{X: 0, Y: 0, Z: 0}
+	// camera.Initialize()
 
 	rt.PrintRenderSettings(camera, len(world.Objects))
 
@@ -30,7 +31,7 @@ func main() {
 
 	// Set window properties
 	ebiten.SetWindowSize(camera.ImageWidth, camera.ImageHeight)
-	ebiten.SetWindowTitle("Go Raytracer - Progressive Scanline Rendering")
+	ebiten.SetWindowTitle("Go Raytracer - Earth Globe")
 
 	// Run the game loop
 	if err := ebiten.RunGame(renderer); err != nil {
