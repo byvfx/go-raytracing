@@ -172,6 +172,33 @@ func (c *Camera) SetLens(vfov, defocusAngle, focusDist float64) *Camera {
 	c.FocusDist = focusDist
 	return c
 }
+func (c *Camera) SetMotion(lookFrom2, lookAt2 Point3) *Camera {
+	c.LookFrom2 = lookFrom2
+	c.LookAt2 = lookAt2
+	c.CameraMotion = true
+	return c
+}
+
+func (c *Camera) SetVFOV(vfov float64) *Camera {
+	c.Vfov = vfov
+	return c
+}
+
+func (c *Camera) SetDefocus(angle, focusDist float64) *Camera {
+	c.DefocusAngle = angle
+	c.FocusDist = focusDist
+	return c
+}
+
+func (c *Camera) DisableMotion() *Camera {
+	c.CameraMotion = false
+	return c
+}
+
+func (c *Camera) Build() *Camera {
+	c.Initialize()
+	return c
+}
 
 // =============================================================================
 // INITIALIZATION
@@ -230,17 +257,17 @@ func (c *Camera) Initialize() {
 	c.defocusDiskV = c.v.Scale(defocusRadius)
 }
 
-func (c *Camera) DefocusDiskSample() Point3 {
-	p := RandomInUnitDisk()
-	return c.center.Add((c.defocusDiskU.Scale(p.X)).Add(c.defocusDiskV.Scale(p.Y)))
-}
-
 func (c *Camera) sampleSquare() Vec3 {
 	return Vec3{
 		X: RandomDouble() - 0.5,
 		Y: RandomDouble() - 0.5,
 		Z: 0,
 	}
+}
+
+func (c *Camera) defocusDiskSample() Point3 {
+	p := RandomInUnitDisk()
+	return c.center.Add((c.defocusDiskU.Scale(p.X)).Add(c.defocusDiskV.Scale(p.Y)))
 }
 
 // =============================================================================
