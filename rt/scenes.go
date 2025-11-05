@@ -174,3 +174,31 @@ func EarthCamera() *Camera {
 
 	return camera
 }
+func PerlinSpheresScene() *HittableList {
+	world := NewHittableList()
+
+	pertext := NewNoiseTexture()
+
+	world.Add(NewSphere(Point3{X: 0, Y: 2, Z: 0}, 2, NewLambertianTexture(pertext)))
+
+	world.Add(NewPlane(Point3{X: 0, Y: 0, Z: -1}, Vec3{X: 0, Y: 1, Z: 0}, NewLambertianTexture(pertext)))
+
+	return world
+}
+
+// PerlinSpheresCamera returns the camera configuration for the Perlin spheres scene
+func PerlinSpheresCamera() *Camera {
+	camera := NewCamera()
+	camera.AspectRatio = 16.0 / 9.0
+	camera.ImageWidth = 400
+	camera.SamplesPerPixel = 100
+	camera.MaxDepth = 50
+	camera.Vfov = 20
+	camera.LookFrom = Point3{X: 13, Y: 2, Z: 3}
+	camera.LookAt = Point3{X: 0, Y: 1, Z: 0}
+	camera.Vup = Vec3{X: 0, Y: 1, Z: 0}
+	camera.DefocusAngle = 0
+	camera.Initialize()
+
+	return camera
+}

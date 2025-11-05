@@ -16,6 +16,16 @@ type CheckerTexture struct {
 	odd      Texture
 }
 
+type NoiseTexture struct {
+	noise *Perlin
+}
+
+func NewNoiseTexture() *NoiseTexture {
+	return &NoiseTexture{
+		noise: NewPerlin(),
+	}
+}
+
 func NewSolidColor(albedo Color) *SolidColor {
 	return &SolidColor{
 		Albedo: albedo,
@@ -59,4 +69,9 @@ func (c *CheckerTexture) Value(u, v float64, p Point3) Color {
 		return c.even.Value(u, v, p)
 	}
 	return c.odd.Value(u, v, p)
+}
+
+func (tex *NoiseTexture) Value(u, v float64, p Point3) Color {
+	noiseValue := tex.noise.Noise(p)
+	return Color{X: noiseValue, Y: noiseValue, Z: noiseValue}
 }

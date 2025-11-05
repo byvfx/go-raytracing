@@ -11,11 +11,11 @@ func main() {
 	startTime := time.Now()
 
 	// Create scene
-	world := rt.EarthScene()
+	world := rt.PerlinSpheresScene()
 	bvh := rt.NewBVHNodeFromList(world)
 
 	// Configure camera with Earth scene settings
-	camera := rt.EarthCamera()
+	camera := rt.PerlinSpheresCamera()
 	// Or use custom settings:
 	// camera := rt.NewCamera()
 	// camera.ApplyPreset(rt.QuickPreview())
@@ -31,7 +31,7 @@ func main() {
 
 	// Set window properties
 	ebiten.SetWindowSize(camera.ImageWidth, camera.ImageHeight)
-	ebiten.SetWindowTitle("Go Raytracer - Earth Globe")
+	ebiten.SetWindowTitle("Go Raytracer")
 
 	// Run the game loop
 	if err := ebiten.RunGame(renderer); err != nil {
