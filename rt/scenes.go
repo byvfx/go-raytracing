@@ -190,12 +190,12 @@ func PerlinSpheresScene() *HittableList {
 func PerlinSpheresCamera() *Camera {
 	camera := NewCamera()
 	camera.AspectRatio = 16.0 / 9.0
-	camera.ImageWidth = 400
+	camera.ImageWidth = 600
 	camera.SamplesPerPixel = 100
 	camera.MaxDepth = 50
 	camera.Vfov = 20
-	camera.LookFrom = Point3{X: 13, Y: 2, Z: 3}
-	camera.LookAt = Point3{X: 0, Y: 1, Z: 0}
+	camera.LookFrom = Point3{X: 13, Y: 2, Z: -10}
+	camera.LookAt = Point3{X: 0, Y: 1.5, Z: 0}
 	camera.Vup = Vec3{X: 0, Y: 1, Z: 0}
 	camera.DefocusAngle = 0
 	camera.Initialize()
