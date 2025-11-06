@@ -2,6 +2,8 @@ package rt
 
 import "math"
 
+//TODO add in a unifed noise function for textures and displacements similar to Maxon's noise implementation
+
 type Perlin struct {
 	randfloat [256]float64
 	permX     [256]int

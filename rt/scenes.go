@@ -177,7 +177,7 @@ func EarthCamera() *Camera {
 func PerlinSpheresScene() *HittableList {
 	world := NewHittableList()
 
-	pertext := NewNoiseTexture()
+	pertext := NewNoiseTexture(4.0)
 
 	world.Add(NewSphere(Point3{X: 0, Y: 2, Z: 0}, 2, NewLambertianTexture(pertext)))
 

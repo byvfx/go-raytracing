@@ -18,11 +18,13 @@ type CheckerTexture struct {
 
 type NoiseTexture struct {
 	noise *Perlin
+	scale float64
 }
 
-func NewNoiseTexture() *NoiseTexture {
+func NewNoiseTexture(scale float64) *NoiseTexture {
 	return &NoiseTexture{
 		noise: NewPerlin(),
+		scale: scale,
 	}
 }
 
@@ -72,6 +74,6 @@ func (c *CheckerTexture) Value(u, v float64, p Point3) Color {
 }
 
 func (tex *NoiseTexture) Value(u, v float64, p Point3) Color {
-	noiseValue := tex.noise.Noise(p)
-	return Color{X: noiseValue, Y: noiseValue, Z: noiseValue}
+	noiseValue := tex.noise.Noise(p.Scale(tex.scale))
+	return Color{X: 1, Y: 1, Z: 1}.Scale(noiseValue)
 }
