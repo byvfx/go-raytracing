@@ -34,7 +34,7 @@ func (r *ProgressiveRenderer) Update() error {
 		r.currentRow++
 		if r.currentRow >= r.camera.ImageHeight && !r.completed {
 			r.completed = true
-			r.SaveImage("image.png")
+			_ = r.SaveImage("image.png")
 		}
 	}
 	return nil
@@ -73,7 +73,12 @@ func (r *ProgressiveRenderer) SaveImage(filename string) error {
 	if err != nil {
 		return fmt.Errorf("error creating image file: %w", err)
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+
+		}
+	}(file)
 
 	if err := png.Encode(file, r.framebuffer); err != nil {
 		return fmt.Errorf("error encoding PNG: %w", err)
