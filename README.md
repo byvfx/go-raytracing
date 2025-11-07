@@ -13,6 +13,10 @@ Go raytracer following "Ray Tracing in One Weekend" series by Peter Shirley.
 go run main.go
 ```
 
+## Lastest Render
+
+![Latest Render](image.png)
+
 Renders to window with progressive scanline display. Saves final image as `image.png`.
 
 ## Features
@@ -141,7 +145,7 @@ world := rt.RandomSceneWithConfig(config)
 - [x] Motion blur (object + camera)
 - [x] BVH acceleration
 - [x] Texture system (solid, checker, image)
-- [ ] Perlin noise
+- [x] Perlin noise
 - [ ] Quadrilaterals
 - [ ] Lights
 - [ ] Instances (translation/rotation)
@@ -150,7 +154,7 @@ world := rt.RandomSceneWithConfig(config)
 **Additional:**
 
 - [x] Progressive rendering w/ Ebiten
-- [x] Plane primitive
+- [x] Infinite Plane primitive
 - [x] Scene configuration system
 - [x] Builder pattern API
 
