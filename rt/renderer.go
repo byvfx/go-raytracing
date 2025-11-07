@@ -76,7 +76,7 @@ func (r *ProgressiveRenderer) SaveImage(filename string) error {
 	defer func(file *os.File) {
 		err := file.Close()
 		if err != nil {
-
+			fmt.Fprintf(os.Stderr, "ERROR: Could not close file '%s': %v\n", filename, err)
 		}
 	}(file)
 
