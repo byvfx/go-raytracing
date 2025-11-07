@@ -46,8 +46,21 @@ func (p *Perlin) Noise(pt Point3) float64 {
 		}
 	}
 
-	return trilinearInterp(c, u, v, w)
+	return perlinInterp(c, u, v, w)
 }
+
+func (p *Perlin) Turb(pt Point3, depth int) float64 {
+	accum := 0.0
+	tempPt := pt
+	weight := 1.0
+	for i := 0; i < depth; i++ {
+		accum += weight * p.Noise(tempPt)
+		weight *= 0.5
+		tempPt = tempPt.Scale(2)
+	}
+	return math.Abs(accum)
+}
+
 func perlinGeneratePerm(p *[256]int) {
 	for i := range 256 {
 		p[i] = i
@@ -61,7 +74,7 @@ func permute(p *[256]int, n int) {
 		p[i], p[target] = p[target], p[i]
 	}
 }
-func trilinearInterp(c [2][2][2]Vec3, u, v, w float64) float64 {
+func perlinInterp(c [2][2][2]Vec3, u, v, w float64) float64 {
 	accum := 0.0
 	for i := range 2 {
 		for j := range 2 {
