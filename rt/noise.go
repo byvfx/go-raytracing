@@ -5,17 +5,17 @@ import "math"
 //TODO add in a unifed noise function for textures and displacements similar to Maxon's noise implementation
 
 type Perlin struct {
-	randfloat [256]float64
-	permX     [256]int
-	permY     [256]int
-	permZ     [256]int
+	randvec [256]Vec3
+	permX   [256]int
+	permY   [256]int
+	permZ   [256]int
 }
 
 func NewPerlin() *Perlin {
 	p := &Perlin{}
 
 	for i := range 256 {
-		p.randfloat[i] = RandomDouble()
+		p.randvec[i] = RandomVec3Range(-1, 1).Unit()
 	}
 
 	perlinGeneratePerm(&p.permX)
@@ -30,20 +30,16 @@ func (p *Perlin) Noise(pt Point3) float64 {
 	v := pt.Y - math.Floor(pt.Y)
 	w := pt.Z - math.Floor(pt.Z)
 
-	u = u * u * (3 - 2*u)
-	v = v * v * (3 - 2*v)
-	w = w * w * (3 - 2*w)
-
 	i := int(math.Floor(pt.X))
 	j := int(math.Floor(pt.Y))
 	k := int(math.Floor(pt.Z))
 
-	var c [2][2][2]float64
+	var c [2][2][2]Vec3
 
 	for di := range 2 {
 		for dj := range 2 {
 			for dk := range 2 {
-				c[di][dj][dk] = p.randfloat[p.permX[(i+di)&255]^
+				c[di][dj][dk] = p.randvec[p.permX[(i+di)&255]^
 					p.permY[(j+dj)&255]^
 					p.permZ[(k+dk)&255]]
 			}
@@ -65,15 +61,16 @@ func permute(p *[256]int, n int) {
 		p[i], p[target] = p[target], p[i]
 	}
 }
-func trilinearInterp(c [2][2][2]float64, u, v, w float64) float64 {
+func trilinearInterp(c [2][2][2]Vec3, u, v, w float64) float64 {
 	accum := 0.0
 	for i := range 2 {
 		for j := range 2 {
-			for k := range 2 {
+			for dk := range 2 {
+				weightV := Vec3{u - float64(i), v - float64(j), w - float64(dk)}
 				accum += (float64(i)*u + (1-float64(i))*(1-u)) *
 					(float64(j)*v + (1-float64(j))*(1-v)) *
-					(float64(k)*w + (1-float64(k))*(1-w)) *
-					c[i][j][k]
+					(float64(dk)*w + (1-float64(dk))*(1-w)) *
+					Dot(c[i][j][dk], weightV)
 			}
 		}
 	}

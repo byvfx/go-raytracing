@@ -74,6 +74,6 @@ func (c *CheckerTexture) Value(u, v float64, p Point3) Color {
 }
 
 func (tex *NoiseTexture) Value(u, v float64, p Point3) Color {
-	noiseValue := tex.noise.Noise(p.Scale(tex.scale))
+	noiseValue := 0.5 * (1.0 + tex.noise.Noise(p.Scale(tex.scale)))
 	return Color{X: 1, Y: 1, Z: 1}.Scale(noiseValue)
 }
