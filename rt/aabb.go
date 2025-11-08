@@ -1,8 +1,19 @@
 package rt
 
+import "math"
+
 type AABB struct {
 	X, Y, Z Interval
 }
+
+var (
+	EmptyAABB    = NewAABB()
+	UniverseAABB = NewAABBFromIntervals(
+		UniverseInterval,
+		UniverseInterval,
+		UniverseInterval,
+	)
+)
 
 func NewAABB() AABB {
 	return AABB{
@@ -13,32 +24,21 @@ func NewAABB() AABB {
 }
 
 func NewAABBFromIntervals(x, y, z Interval) AABB {
-	return AABB{X: x, Y: y, Z: z}
+	box := AABB{X: x, Y: y, Z: z}
+	box.padToMinimums()
+	return box
 }
 
 func NewAABBFromPoints(a, b Point3) AABB {
-	var x, y, z Interval
-
-	if a.X <= b.X {
-		x = NewInterval(a.X, b.X)
-	} else {
-		x = NewInterval(b.X, a.X)
+	box := AABB{
+		X: NewInterval(math.Min(a.X, b.X), math.Max(a.X, b.X)),
+		Y: NewInterval(math.Min(a.Y, b.Y), math.Max(a.Y, b.Y)),
+		Z: NewInterval(math.Min(a.Z, b.Z), math.Max(a.Z, b.Z)),
 	}
-
-	if a.Y <= b.Y {
-		y = NewInterval(a.Y, b.Y)
-	} else {
-		y = NewInterval(b.Y, a.Y)
-	}
-
-	if a.Z <= b.Z {
-		z = NewInterval(a.Z, b.Z)
-	} else {
-		z = NewInterval(b.Z, a.Z)
-	}
-
-	return AABB{X: x, Y: y, Z: z}
+	box.padToMinimums()
+	return box
 }
+
 func NewAABBFromBoxes(box0, box1 AABB) AABB {
 	return AABB{
 		X: NewIntervalFromIntervals(box0.X, box1.X),
@@ -102,4 +102,16 @@ func (box AABB) Hit(r Ray, rayT Interval) bool {
 	}
 
 	return true
+}
+func (box *AABB) padToMinimums() {
+	delta := 0.0001
+	if box.X.Size() < delta {
+		box.X = box.X.Expand(delta)
+	}
+	if box.Y.Size() < delta {
+		box.Y = box.Y.Expand(delta)
+	}
+	if box.Z.Size() < delta {
+		box.Z = box.Z.Expand(delta)
+	}
 }
