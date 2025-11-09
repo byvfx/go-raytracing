@@ -10,19 +10,11 @@ import (
 func main() {
 	startTime := time.Now()
 
-	// Create scene
-	world := rt.PerlinSpheresScene()
-	bvh := rt.NewBVHNodeFromList(world)
+	// Create quads scene
+	world := rt.QuadsScene()
+	camera := rt.QuadsCamera()
 
-	// Configure camera with Earth scene settings
-	camera := rt.PerlinSpheresCamera()
-	// Or use custom settings:
-	// camera := rt.NewCamera()
-	// camera.ApplyPreset(rt.QuickPreview())
-	// camera.ImageWidth = 1000
-	// camera.LookFrom = rt.Point3{X: 0, Y: 0, Z: 12}
-	// camera.LookAt = rt.Point3{X: 0, Y: 0, Z: 0}
-	// camera.Initialize()
+	bvh := rt.NewBVHNodeFromList(world)
 
 	rt.PrintRenderSettings(camera, len(world.Objects))
 

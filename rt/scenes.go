@@ -202,3 +202,36 @@ func PerlinSpheresCamera() *Camera {
 
 	return camera
 }
+func QuadsScene() *HittableList {
+	world := NewHittableList()
+
+	leftRed := NewLambertian(Color{X: 1.0, Y: 0.2, Z: 0.2})
+	backGreen := NewLambertian(Color{X: 0.2, Y: 1.0, Z: 0.2})
+	rightBlue := NewLambertian(Color{X: 0.2, Y: 0.2, Z: 1.0})
+	upperOrange := NewLambertian(Color{X: 1.0, Y: 0.5, Z: 0.0})
+	lowerTeal := NewLambertian(Color{X: 0.2, Y: 0.8, Z: 0.8})
+
+	world.Add(NewQuad(Point3{X: -3, Y: -2, Z: 5}, Vec3{X: 0, Y: 0, Z: -4}, Vec3{X: 0, Y: 4, Z: 0}, leftRed))
+	world.Add(NewQuad(Point3{X: -2, Y: -2, Z: 0}, Vec3{X: 4, Y: 0, Z: 0}, Vec3{X: 0, Y: 4, Z: 0}, backGreen))
+	world.Add(NewQuad(Point3{X: 3, Y: -2, Z: 1}, Vec3{X: 0, Y: 0, Z: 4}, Vec3{X: 0, Y: 4, Z: 0}, rightBlue))
+	world.Add(NewQuad(Point3{X: -2, Y: 3, Z: 1}, Vec3{X: 4, Y: 0, Z: 0}, Vec3{X: 0, Y: 0, Z: 4}, upperOrange))
+	world.Add(NewQuad(Point3{X: -2, Y: -3, Z: 5}, Vec3{X: 4, Y: 0, Z: 0}, Vec3{X: 0, Y: 0, Z: -4}, lowerTeal))
+
+	return world
+}
+
+func QuadsCamera() *Camera {
+	camera := NewCamera()
+	camera.AspectRatio = 1.0
+	camera.ImageWidth = 400
+	camera.SamplesPerPixel = 100
+	camera.MaxDepth = 50
+	camera.Vfov = 80
+	camera.LookFrom = Point3{X: 0, Y: 0, Z: 9}
+	camera.LookAt = Point3{X: 0, Y: 0, Z: 0}
+	camera.Vup = Vec3{X: 0, Y: 1, Z: 0}
+	camera.DefocusAngle = 0
+	camera.Initialize()
+
+	return camera
+}
