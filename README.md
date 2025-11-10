@@ -66,6 +66,7 @@ camera := rt.NewCamera().
 - **SolidColor** - Uniform color
 - **CheckerTexture** - 3D procedural checkerboard
 - **ImageTexture** - Image-based textures (PNG/JPEG support)
+- **NoiseTexture** - Perlin noise-based procedural texture
 
 ### Acceleration
 
@@ -84,6 +85,10 @@ bvh := rt.NewBVHNodeFromList(world)
 
 - **Sphere** - Static and moving spheres
 - **Plane** - Infinite planes
+- **Quad** - Axis-aligned quadrilaterals
+- **Triangle** - Basic triangle primitive
+- **Circle/Disk** - Flat circular surfaces
+- **BVHNode** - Acceleration structure node
 - All objects have axis-aligned bounding boxes
 
 ### Scenes
@@ -93,6 +98,9 @@ Predefined scenes:
 - `RandomScene()` - Configurable random sphere distribution
 - `CheckeredSpheresScene()` - Two checkered spheres
 - `SimpleScene()` - Basic test scene
+- `PerlinSpheresScene()` - Spheres with Perlin noise textures
+- `EarthScene()` - Textured Earth sphere
+- `QuadsScene()` - Box-like room made of quads
 
 `SceneConfig` allows control over material probabilities, motion blur per material, grid bounds, etc.
 
@@ -146,7 +154,7 @@ world := rt.RandomSceneWithConfig(config)
 - [x] BVH acceleration
 - [x] Texture system (solid, checker, image)
 - [x] Perlin noise
-- [ ] Quadrilaterals
+- [x] Quadrilaterals
 - [ ] Lights
 - [ ] Instances (translation/rotation)
 - [ ] Volumes (fog/smoke)
@@ -157,6 +165,8 @@ world := rt.RandomSceneWithConfig(config)
 - [x] Infinite Plane primitive
 - [x] Scene configuration system
 - [x] Builder pattern API
+- [x] Triangles primitive
+- [x] Circle/Disk primitive
 
 ## Resources
 
