@@ -10,6 +10,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
+	"golang.org/x/image/font/basicfont"
 )
 
 type ProgressiveRenderer struct {
@@ -39,7 +41,8 @@ func (r *ProgressiveRenderer) Update() error {
 		r.currentRow++
 		if r.currentRow >= r.camera.ImageHeight && !r.completed {
 			r.completed = true
-			r.renderEnd = time.Now() // Record end time when rendering completes
+			r.renderEnd = time.Now()
+			r.drawStatsToFramebuffer()
 			_ = r.SaveImage("image.png")
 
 			// Print render stats with actual render time
@@ -87,9 +90,6 @@ func (r *ProgressiveRenderer) drawRenderSettings(screen *ebiten.Image) {
 			}
 		}
 	}
-
-	textColor := color.RGBA{R: 255, G: 255, B: 255, A: 255}
-
 	// Display render settings
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Resolution: %dx%d", r.camera.ImageWidth, r.camera.ImageHeight), x, y)
 	y += lineHeight
@@ -108,7 +108,65 @@ func (r *ProgressiveRenderer) drawRenderSettings(screen *ebiten.Image) {
 		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Scanline: %d/%d", r.currentRow, r.camera.ImageHeight), x, y)
 	}
 
-	_ = textColor // Suppress unused variable warning
+}
+
+// drawStatsToFramebuffer draws the render statistics directly onto the framebuffer for saving
+func (r *ProgressiveRenderer) drawStatsToFramebuffer() {
+	elapsed := r.renderEnd.Sub(r.renderStart)
+
+	x := 10
+	y := r.camera.ImageHeight - 95
+	lineHeight := 12
+
+	// Draw semi-transparent background
+	bgColor := color.RGBA{R: 0, G: 0, B: 0, A: 220}
+	bgRect := image.Rect(x-5, y-5, x+280, y+85)
+	for py := bgRect.Min.Y; py < bgRect.Max.Y; py++ {
+		for px := bgRect.Min.X; px < bgRect.Max.X; px++ {
+			if px >= 0 && px < r.camera.ImageWidth && py >= 0 && py < r.camera.ImageHeight {
+				// Blend background color with existing pixel
+				existing := r.framebuffer.At(px, py)
+				er, eg, eb, _ := existing.RGBA()
+				// Simple alpha blending
+				a := float64(bgColor.A) / 255.0
+				finalR := uint8(float64(bgColor.R)*a + float64(er>>8)*(1-a))
+				finalG := uint8(float64(bgColor.G)*a + float64(eg>>8)*(1-a))
+				finalB := uint8(float64(bgColor.B)*a + float64(eb>>8)*(1-a))
+				r.framebuffer.Set(px, py, color.RGBA{R: finalR, G: finalG, B: finalB, A: 255})
+			}
+		}
+	}
+
+	// Prepare text lines
+	textColor := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	face := text.NewGoXFace(basicfont.Face7x13)
+
+	lines := []string{
+		fmt.Sprintf("Resolution: %dx%d", r.camera.ImageWidth, r.camera.ImageHeight),
+		fmt.Sprintf("Samples/Pixel: %d", r.camera.SamplesPerPixel),
+		fmt.Sprintf("Max Depth: %d", r.camera.MaxDepth),
+		fmt.Sprintf("Progress: 100.0%%"),
+		fmt.Sprintf("Render Time: %s", FormatDuration(elapsed)),
+		"Status: COMPLETED",
+	}
+
+	// Create temporary ebiten.Image from framebuffer
+	tempImg := ebiten.NewImageFromImage(r.framebuffer)
+
+	// Draw each line of text
+	// Note: text.Draw uses baseline positioning, so we need to add font height
+	// basicfont.Face7x13 has height of 13 pixels
+	fontHeight := 13
+	for i, line := range lines {
+		opts := &text.DrawOptions{}
+		// Match ebitenutil.DebugPrintAt positioning
+		opts.GeoM.Translate(float64(x), float64(y+i*lineHeight+fontHeight-2))
+		opts.ColorScale.ScaleWithColor(textColor)
+		text.Draw(tempImg, line, face, opts)
+	}
+
+	// Copy the result back to framebuffer
+	tempImg.ReadPixels(r.framebuffer.Pix)
 }
 
 func (r *ProgressiveRenderer) Layout(w, h int) (int, int) {
