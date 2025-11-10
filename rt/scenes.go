@@ -372,13 +372,13 @@ func PrimitivesScene() *HittableList {
 func PrimitivesCamera() *Camera {
 	camera := NewCameraBuilder().
 		SetResolution(800, 16.0/9.0).
-		SetQuality(100, 50).
+		SetQuality(500, 50).
 		SetPosition(
-			Point3{X: 0, Y: 2, Z: 10}, // Camera position - centered and pulled back
-			Point3{X: 0, Y: 0, Z: 0},  // Looking at scene center
-			Vec3{X: 0, Y: 1, Z: 0},    // Up vector
+			Point3{X: 0, Y: 2, Z: 10},
+			Point3{X: 0, Y: 0, Z: 0},
+			Vec3{X: 0, Y: 1, Z: 0},
 		).
-		SetLens(45, 0, 10). // 45° FOV, no defocus blur, focus distance 10
+		SetLens(45, 2, 10). // 45° FOV, no defocus blur, focus distance 10
 		Build()
 	return camera
 }
