@@ -3,7 +3,7 @@ package rt
 import "math"
 
 //TODO add in a unifed noise function for textures and displacements similar to Maxon's noise implementation
-
+//TODO add options for different noise types (Perlin, Simplex, Worley, etc.)
 type Perlin struct {
 	randvec [256]Vec3
 	permX   [256]int
