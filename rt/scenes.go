@@ -240,7 +240,9 @@ func QuadsCamera() *Camera {
 func PrimitivesScene() *HittableList {
 	world := NewHittableList()
 
-	// Materials
+	// =============================================================================
+	// MATERIALS
+	// =============================================================================
 	redMat := NewLambertian(Color{X: 0.8, Y: 0.1, Z: 0.1})
 	greenMat := NewLambertian(Color{X: 0.1, Y: 0.8, Z: 0.1})
 	blueMat := NewLambertian(Color{X: 0.1, Y: 0.1, Z: 0.8})
@@ -249,27 +251,32 @@ func PrimitivesScene() *HittableList {
 	magentaMat := NewLambertian(Color{X: 0.8, Y: 0.1, Z: 0.8})
 	orangeMat := NewLambertian(Color{X: 1.0, Y: 0.5, Z: 0.0})
 	metalMat := NewMetal(Color{X: 0.7, Y: 0.7, Z: 0.7}, 0.1)
-	// checkerMat := NewLambertianTexture(NewCheckerTextureFromColors(1.0,
-	// 	Color{X: 0.2, Y: 0.3, Z: 0.1},
-	// 	Color{X: 0.9, Y: 0.9, Z: 0.9}))
-	noiseMat := NewLambertianTexture(NewNoiseTexture(.42))
 
-	// ===== GROUND PLANE =====
-	world.Add(NewPlane(Point3{X: 0, Y: -1, Z: 0}, Vec3{X: 0, Y: 1, Z: 0}, noiseMat))
+	checkerMat := NewLambertianTexture(NewCheckerTextureFromColors(1.0,
+		Color{X: 0.0, Y: 0.0, Z: 0.0},
+		Color{X: 0.9, Y: 0.9, Z: 0.9}))
 
-	// ===== LEFT SIDE: Circle (Disk) =====
-	// Vertical red circle/disk facing camera
+	// =============================================================================
+	// GROUND PLANE (Infinite Plane with Checker Pattern)
+	// =============================================================================
+	world.Add(NewPlane(Point3{X: 0, Y: -1, Z: 0}, Vec3{X: 0, Y: 1, Z: 0}, checkerMat))
+
+	// =============================================================================
+	// LEFT: Circle (Disk)
+	// =============================================================================
 	world.Add(NewCircle(
-		Point3{X: -4, Y: 0.5, Z: -1},
-		Vec3{X: 0, Y: 0, Z: 1}, // Normal pointing at camera
-		0.8,
+		Point3{X: -5, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 1, Z: 0}, // Normal pointing at camera
+		0.9,
 		redMat,
 	))
 
-	// ===== CENTER LEFT: Triangle Pyramid =====
-	pyramidX := -1.5
-	pyramidHeight := 1.5
-	pyramidBase := 1.2
+	// =============================================================================
+	// CENTER-LEFT: Triangle Pyramid
+	// =============================================================================
+	pyramidX := -2.5
+	pyramidHeight := 1.8
+	pyramidBase := 1.4
 
 	// Front face (green)
 	world.Add(NewTriangle(
@@ -300,12 +307,16 @@ func PrimitivesScene() *HittableList {
 		cyanMat,
 	))
 
-	// ===== CENTER: Glass Sphere =====
-	world.Add(NewSphere(Point3{X: 0.5, Y: 0.5, Z: 0}, 0.7, NewDielectric(1.5)))
+	// =============================================================================
+	// CENTER: Glass Sphere
+	// =============================================================================
+	world.Add(NewSphere(Point3{X: 0, Y: 0.6, Z: 0}, 0.8, NewDielectric(1.5)))
 
-	// ===== CENTER RIGHT: Quad Cube =====
+	// =============================================================================
+	// CENTER-RIGHT: Quad Cube
+	// =============================================================================
 	cubeX := 2.5
-	cubeSize := 0.8
+	cubeSize := 1.0
 
 	// Front face (red)
 	world.Add(NewQuad(
@@ -342,7 +353,7 @@ func PrimitivesScene() *HittableList {
 		Vec3{X: 0, Y: 0, Z: cubeSize},
 		magentaMat,
 	))
-	// Bottom face (orange) - visible through transparency
+	// Bottom face (orange)
 	world.Add(NewQuad(
 		Point3{X: cubeX - cubeSize/2, Y: -1, Z: cubeSize / 2},
 		Vec3{X: cubeSize, Y: 0, Z: 0},
@@ -350,24 +361,24 @@ func PrimitivesScene() *HittableList {
 		orangeMat,
 	))
 
-	// ===== RIGHT SIDE: Metal Sphere =====
-	world.Add(NewSphere(Point3{X: 4.5, Y: 0, Z: 0}, 0.6, metalMat))
+	// =============================================================================
+	// RIGHT: Metal Sphere
+	// =============================================================================
+	world.Add(NewSphere(Point3{X: 5, Y: 0.6, Z: 0}, 0.8, metalMat))
 
 	return world
 }
 
 func PrimitivesCamera() *Camera {
-	camera := NewCamera()
-	camera.AspectRatio = 16.0 / 9.0
-	camera.ImageWidth = 800
-	camera.SamplesPerPixel = 100
-	camera.MaxDepth = 50
-	camera.Vfov = 50
-	camera.LookFrom = Point3{X: -.5, Y: 2, Z: 6}
-	camera.LookAt = Point3{X: 0, Y: 0, Z: 0}
-	camera.Vup = Vec3{X: 0, Y: 1, Z: 0}
-	camera.DefocusAngle = 0
-	camera.Initialize()
-
+	camera := NewCameraBuilder().
+		SetResolution(800, 16.0/9.0).
+		SetQuality(100, 50).
+		SetPosition(
+			Point3{X: 0, Y: 2, Z: 10}, // Camera position - centered and pulled back
+			Point3{X: 0, Y: 0, Z: 0},  // Looking at scene center
+			Vec3{X: 0, Y: 1, Z: 0},    // Up vector
+		).
+		SetLens(45, 0, 10). // 45° FOV, no defocus blur, focus distance 10
+		Build()
 	return camera
 }
