@@ -1,3 +1,4 @@
+// TODO add option for Depth of Field, so we can set a global flag that will enable/disable defocus blur
 package rt
 
 import (
@@ -14,7 +15,6 @@ import (
 // CAMERA STRUCT
 // =============================================================================
 type Camera struct {
-	// caps mean public
 	AspectRatio     float64
 	ImageWidth      int
 	ImageHeight     int
@@ -29,6 +29,8 @@ type Camera struct {
 	LookFrom2       Point3
 	LookAt2         Point3
 	CameraMotion    bool
+	FreeCamera      bool
+	Forward         Vec3
 
 	pixelsSamplesScale float64
 	center             Point3
@@ -61,6 +63,8 @@ func NewCamera() *Camera {
 		LookFrom2:       Point3{0, 0, 0},
 		LookAt2:         Point3{0, 0, 0},
 		CameraMotion:    false,
+		FreeCamera:      false,
+		Forward:         Vec3{0, 0, -1},
 	}
 }
 
@@ -79,6 +83,8 @@ type CameraPreset struct {
 	LookFrom        Point3
 	LookAt          Point3
 	Vup             Vec3
+	FreeCamera      bool
+	Forward         Vec3
 }
 
 // camera presets
@@ -125,6 +131,7 @@ func HighQuality() CameraPreset {
 		LookAt:          Point3{X: 0, Y: 0, Z: 0},
 		Vup:             Vec3{X: 0, Y: 1, Z: 0},
 	}
+
 }
 func (c *Camera) ApplyPreset(preset CameraPreset) {
 	c.AspectRatio = preset.AspectRatio
@@ -137,6 +144,8 @@ func (c *Camera) ApplyPreset(preset CameraPreset) {
 	c.LookFrom = preset.LookFrom
 	c.LookAt = preset.LookAt
 	c.Vup = preset.Vup
+	c.FreeCamera = preset.FreeCamera
+	c.Forward = preset.Forward
 }
 
 // =============================================================================
@@ -194,6 +203,13 @@ func (c *Camera) DisableMotion() *Camera {
 	c.CameraMotion = false
 	return c
 }
+func (c *Camera) EnableFreeCamera(position Point3, forward Vec3, vup Vec3) *Camera {
+	c.LookFrom = position
+	c.Forward = forward.Unit()
+	c.Vup = vup.Unit()
+	c.FreeCamera = true
+	return c
+}
 
 func (c *Camera) Build() *Camera {
 	c.Initialize()
@@ -231,7 +247,11 @@ func (c *Camera) Initialize() {
 
 	viewportWidth := viewportHeight * (float64(c.ImageWidth) / float64(c.ImageHeight))
 
-	c.w = c.LookFrom.Sub(c.LookAt).Unit()
+	if c.FreeCamera {
+		c.w = c.Forward.Neg()
+	} else {
+		c.w = c.center.Sub(c.LookAt).Unit()
+	}
 
 	c.u = Cross(c.Vup, c.w).Unit()
 
@@ -265,9 +285,14 @@ func (c *Camera) sampleSquare() Vec3 {
 	}
 }
 
-func (c *Camera) defocusDiskSample() Point3 {
+func (c *Camera) defocusDiskSample(center Point3, u, v Vec3) Point3 {
 	p := RandomInUnitDisk()
-	return c.center.Add((c.defocusDiskU.Scale(p.X)).Add(c.defocusDiskV.Scale(p.Y)))
+	defocusRadius := c.FocusDist * math.Tan(DegreesToRadians(c.DefocusAngle/2))
+	defocusDiskU := u.Scale(defocusRadius)
+	defocusDiskV := v.Scale(defocusRadius)
+	p = RandomInUnitDisk()
+
+	return center.Add(defocusDiskU.Scale(p.X)).Add(defocusDiskV.Scale(p.Y))
 }
 
 // =============================================================================
@@ -279,11 +304,18 @@ func (c *Camera) GetRay(i, j int) Ray {
 	rayTime := RandomDouble()
 
 	currentCenter := c.centerMotion.At(rayTime)
-	currentLookAt := c.lookAtMotion.At(rayTime)
+	var u, v, w Vec3
 
-	w := currentCenter.Sub(currentLookAt).Unit()
-	u := Cross(c.Vup, w).Unit()
-	v := Cross(w, u)
+	if c.FreeCamera {
+		w = c.Forward.Neg()
+		u = Cross(c.Vup, w).Unit()
+		v = Cross(w, u)
+	} else {
+		currentLookAt := c.lookAtMotion.At(rayTime)
+		w = currentCenter.Sub(currentLookAt).Unit()
+		u = Cross(c.Vup, w).Unit()
+		v = Cross(w, u)
+	}
 
 	theta := DegreesToRadians(c.Vfov)
 	h := math.Tan(theta / 2)
@@ -314,12 +346,7 @@ func (c *Camera) GetRay(i, j int) Ray {
 		rayOrigin = currentCenter
 	} else {
 		// Defocus disk also moves with camera
-		defocusRadius := c.FocusDist * math.Tan(DegreesToRadians(c.DefocusAngle/2))
-		defocusDiskU := u.Scale(defocusRadius)
-		defocusDiskV := v.Scale(defocusRadius)
-
-		p := RandomInUnitDisk()
-		rayOrigin = currentCenter.Add(defocusDiskU.Scale(p.X)).Add(defocusDiskV.Scale(p.Y))
+		rayOrigin = c.defocusDiskSample(currentCenter, u, v)
 	}
 
 	rayDirection := pixelSample.Sub(rayOrigin)
