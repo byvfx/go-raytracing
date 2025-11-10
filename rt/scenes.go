@@ -235,3 +235,139 @@ func QuadsCamera() *Camera {
 
 	return camera
 }
+
+// PrimitivesScene demonstrates all primitive types: sphere, circle, quad (as cube), triangle (as pyramid), and infinite plane
+func PrimitivesScene() *HittableList {
+	world := NewHittableList()
+
+	// Materials
+	redMat := NewLambertian(Color{X: 0.8, Y: 0.1, Z: 0.1})
+	greenMat := NewLambertian(Color{X: 0.1, Y: 0.8, Z: 0.1})
+	blueMat := NewLambertian(Color{X: 0.1, Y: 0.1, Z: 0.8})
+	yellowMat := NewLambertian(Color{X: 0.8, Y: 0.8, Z: 0.1})
+	cyanMat := NewLambertian(Color{X: 0.1, Y: 0.8, Z: 0.8})
+	magentaMat := NewLambertian(Color{X: 0.8, Y: 0.1, Z: 0.8})
+	orangeMat := NewLambertian(Color{X: 1.0, Y: 0.5, Z: 0.0})
+	metalMat := NewMetal(Color{X: 0.7, Y: 0.7, Z: 0.7}, 0.1)
+	// checkerMat := NewLambertianTexture(NewCheckerTextureFromColors(1.0,
+	// 	Color{X: 0.2, Y: 0.3, Z: 0.1},
+	// 	Color{X: 0.9, Y: 0.9, Z: 0.9}))
+	noiseMat := NewLambertianTexture(NewNoiseTexture(.42))
+
+	// ===== GROUND PLANE =====
+	world.Add(NewPlane(Point3{X: 0, Y: -1, Z: 0}, Vec3{X: 0, Y: 1, Z: 0}, noiseMat))
+
+	// ===== LEFT SIDE: Circle (Disk) =====
+	// Vertical red circle/disk facing camera
+	world.Add(NewCircle(
+		Point3{X: -4, Y: 0.5, Z: -1},
+		Vec3{X: 0, Y: 0, Z: 1}, // Normal pointing at camera
+		0.8,
+		redMat,
+	))
+
+	// ===== CENTER LEFT: Triangle Pyramid =====
+	pyramidX := -1.5
+	pyramidHeight := 1.5
+	pyramidBase := 1.2
+
+	// Front face (green)
+	world.Add(NewTriangle(
+		Point3{X: pyramidX, Y: -1, Z: pyramidBase / 2},
+		Point3{X: pyramidX - pyramidBase/2, Y: -1, Z: -pyramidBase / 2},
+		Point3{X: pyramidX, Y: pyramidHeight, Z: 0},
+		greenMat,
+	))
+	// Right face (blue)
+	world.Add(NewTriangle(
+		Point3{X: pyramidX, Y: -1, Z: pyramidBase / 2},
+		Point3{X: pyramidX, Y: pyramidHeight, Z: 0},
+		Point3{X: pyramidX + pyramidBase/2, Y: -1, Z: -pyramidBase / 2},
+		blueMat,
+	))
+	// Back face (yellow)
+	world.Add(NewTriangle(
+		Point3{X: pyramidX + pyramidBase/2, Y: -1, Z: -pyramidBase / 2},
+		Point3{X: pyramidX, Y: pyramidHeight, Z: 0},
+		Point3{X: pyramidX - pyramidBase/2, Y: -1, Z: -pyramidBase / 2},
+		yellowMat,
+	))
+	// Left face (cyan)
+	world.Add(NewTriangle(
+		Point3{X: pyramidX - pyramidBase/2, Y: -1, Z: -pyramidBase / 2},
+		Point3{X: pyramidX, Y: pyramidHeight, Z: 0},
+		Point3{X: pyramidX, Y: -1, Z: pyramidBase / 2},
+		cyanMat,
+	))
+
+	// ===== CENTER: Glass Sphere =====
+	world.Add(NewSphere(Point3{X: 0.5, Y: 0.5, Z: 0}, 0.7, NewDielectric(1.5)))
+
+	// ===== CENTER RIGHT: Quad Cube =====
+	cubeX := 2.5
+	cubeSize := 0.8
+
+	// Front face (red)
+	world.Add(NewQuad(
+		Point3{X: cubeX - cubeSize/2, Y: -1, Z: cubeSize / 2},
+		Vec3{X: cubeSize, Y: 0, Z: 0},
+		Vec3{X: 0, Y: cubeSize, Z: 0},
+		redMat,
+	))
+	// Back face (green)
+	world.Add(NewQuad(
+		Point3{X: cubeX + cubeSize/2, Y: -1, Z: -cubeSize / 2},
+		Vec3{X: -cubeSize, Y: 0, Z: 0},
+		Vec3{X: 0, Y: cubeSize, Z: 0},
+		greenMat,
+	))
+	// Left face (blue)
+	world.Add(NewQuad(
+		Point3{X: cubeX - cubeSize/2, Y: -1, Z: -cubeSize / 2},
+		Vec3{X: 0, Y: 0, Z: cubeSize},
+		Vec3{X: 0, Y: cubeSize, Z: 0},
+		blueMat,
+	))
+	// Right face (yellow)
+	world.Add(NewQuad(
+		Point3{X: cubeX + cubeSize/2, Y: -1, Z: cubeSize / 2},
+		Vec3{X: 0, Y: 0, Z: -cubeSize},
+		Vec3{X: 0, Y: cubeSize, Z: 0},
+		yellowMat,
+	))
+	// Top face (magenta)
+	world.Add(NewQuad(
+		Point3{X: cubeX - cubeSize/2, Y: -1 + cubeSize, Z: -cubeSize / 2},
+		Vec3{X: cubeSize, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: cubeSize},
+		magentaMat,
+	))
+	// Bottom face (orange) - visible through transparency
+	world.Add(NewQuad(
+		Point3{X: cubeX - cubeSize/2, Y: -1, Z: cubeSize / 2},
+		Vec3{X: cubeSize, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: -cubeSize},
+		orangeMat,
+	))
+
+	// ===== RIGHT SIDE: Metal Sphere =====
+	world.Add(NewSphere(Point3{X: 4.5, Y: 0, Z: 0}, 0.6, metalMat))
+
+	return world
+}
+
+func PrimitivesCamera() *Camera {
+	camera := NewCamera()
+	camera.AspectRatio = 16.0 / 9.0
+	camera.ImageWidth = 800
+	camera.SamplesPerPixel = 100
+	camera.MaxDepth = 50
+	camera.Vfov = 50
+	camera.LookFrom = Point3{X: -.5, Y: 2, Z: 6}
+	camera.LookAt = Point3{X: 0, Y: 0, Z: 0}
+	camera.Vup = Vec3{X: 0, Y: 1, Z: 0}
+	camera.DefocusAngle = 0
+	camera.Initialize()
+
+	return camera
+}
