@@ -10,9 +10,8 @@ import (
 func main() {
 	startTime := time.Now()
 
-	// Create quads scene
-	world := rt.QuadsScene()
-	camera := rt.QuadsCamera()
+	world := rt.PrimitivesScene()
+	camera := rt.PrimitivesCamera()
 
 	bvh := rt.NewBVHNodeFromList(world)
 
