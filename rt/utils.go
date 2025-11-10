@@ -1,3 +1,4 @@
+// TODO fix bug in the print settings where it just keeps the time of the app open and not the actual render time
 package rt
 
 import (
