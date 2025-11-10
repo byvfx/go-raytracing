@@ -6,8 +6,10 @@ import (
 	"image/color"
 	"image/png"
 	"os"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 type ProgressiveRenderer struct {
@@ -16,6 +18,8 @@ type ProgressiveRenderer struct {
 	world       Hittable
 	currentRow  int
 	completed   bool
+	renderStart time.Time
+	renderEnd   time.Time
 }
 
 func NewProgressiveRenderer(camera *Camera, world Hittable) *ProgressiveRenderer {
@@ -26,6 +30,7 @@ func NewProgressiveRenderer(camera *Camera, world Hittable) *ProgressiveRenderer
 		world:       world,
 		currentRow:  0,
 		completed:   false,
+		renderStart: time.Now(), // Start timing when renderer is created
 	}
 }
 func (r *ProgressiveRenderer) Update() error {
@@ -34,7 +39,12 @@ func (r *ProgressiveRenderer) Update() error {
 		r.currentRow++
 		if r.currentRow >= r.camera.ImageHeight && !r.completed {
 			r.completed = true
+			r.renderEnd = time.Now() // Record end time when rendering completes
 			_ = r.SaveImage("image.png")
+
+			// Print render stats with actual render time
+			renderDuration := r.renderEnd.Sub(r.renderStart)
+			PrintRenderStats(renderDuration, r.camera.ImageWidth, r.camera.ImageHeight)
 		}
 	}
 	return nil
@@ -42,6 +52,63 @@ func (r *ProgressiveRenderer) Update() error {
 
 func (r *ProgressiveRenderer) Draw(screen *ebiten.Image) {
 	screen.WritePixels(r.framebuffer.Pix)
+
+	// Draw render settings in lower left corner
+	r.drawRenderSettings(screen)
+}
+
+func (r *ProgressiveRenderer) drawRenderSettings(screen *ebiten.Image) {
+	// Calculate progress
+	progress := float64(r.currentRow) / float64(r.camera.ImageHeight) * 100.0
+	if r.completed {
+		progress = 100.0
+	}
+
+	// Calculate elapsed time
+	var elapsed time.Duration
+	if r.completed {
+		elapsed = r.renderEnd.Sub(r.renderStart)
+	} else {
+		elapsed = time.Since(r.renderStart)
+	}
+
+	// Position text in lower left corner
+	x := 10
+	y := r.camera.ImageHeight - 95
+	lineHeight := 12
+
+	// Create semi-transparent background for better readability
+	bgColor := color.RGBA{R: 0, G: 0, B: 0, A: 180}
+	bgRect := image.Rect(x-5, y-5, x+280, y+85)
+	for py := bgRect.Min.Y; py < bgRect.Max.Y; py++ {
+		for px := bgRect.Min.X; px < bgRect.Max.X; px++ {
+			if px >= 0 && px < r.camera.ImageWidth && py >= 0 && py < r.camera.ImageHeight {
+				r.framebuffer.Set(px, py, bgColor)
+			}
+		}
+	}
+
+	textColor := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+
+	// Display render settings
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Resolution: %dx%d", r.camera.ImageWidth, r.camera.ImageHeight), x, y)
+	y += lineHeight
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Samples/Pixel: %d", r.camera.SamplesPerPixel), x, y)
+	y += lineHeight
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Max Depth: %d", r.camera.MaxDepth), x, y)
+	y += lineHeight
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Progress: %.1f%%", progress), x, y)
+	y += lineHeight
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Render Time: %s", FormatDuration(elapsed)), x, y)
+	y += lineHeight
+
+	if r.completed {
+		ebitenutil.DebugPrintAt(screen, "Status: COMPLETED", x, y)
+	} else {
+		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Scanline: %d/%d", r.currentRow, r.camera.ImageHeight), x, y)
+	}
+
+	_ = textColor // Suppress unused variable warning
 }
 
 func (r *ProgressiveRenderer) Layout(w, h int) (int, int) {
@@ -90,4 +157,12 @@ func (r *ProgressiveRenderer) SaveImage(filename string) error {
 
 func (r *ProgressiveRenderer) IsCompleted() bool {
 	return r.completed
+}
+
+// GetRenderDuration returns the actual render time
+func (r *ProgressiveRenderer) GetRenderDuration() time.Duration {
+	if r.completed {
+		return r.renderEnd.Sub(r.renderStart)
+	}
+	return time.Since(r.renderStart)
 }
