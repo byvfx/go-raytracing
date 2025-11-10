@@ -2,14 +2,11 @@ package main
 
 import (
 	"go-raytracing/rt"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func main() {
-	startTime := time.Now()
-
 	world := rt.PrimitivesScene()
 	camera := rt.PrimitivesCamera()
 
@@ -28,7 +25,4 @@ func main() {
 	if err := ebiten.RunGame(renderer); err != nil {
 		panic(err)
 	}
-
-	elapsed := time.Since(startTime)
-	rt.PrintRenderStats(elapsed, camera.ImageWidth, camera.ImageHeight)
 }
