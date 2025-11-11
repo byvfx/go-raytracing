@@ -153,13 +153,9 @@ func (r *ProgressiveRenderer) drawStatsToFramebuffer() {
 	// Create temporary ebiten.Image from framebuffer
 	tempImg := ebiten.NewImageFromImage(r.framebuffer)
 
-	// Draw each line of text
-	// Note: text.Draw uses baseline positioning, so we need to add font height
-	// basicfont.Face7x13 has height of 13 pixels
 	fontHeight := 13
 	for i, line := range lines {
 		opts := &text.DrawOptions{}
-		// Match ebitenutil.DebugPrintAt positioning
 		opts.GeoM.Translate(float64(x), float64(y+i*lineHeight+fontHeight-2))
 		opts.ColorScale.ScaleWithColor(textColor)
 		text.Draw(tempImg, line, face, opts)
