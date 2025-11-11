@@ -81,8 +81,8 @@ func (r *ProgressiveRenderer) drawRenderSettings(screen *ebiten.Image) {
 	lineHeight := 12
 
 	// Create semi-transparent background for better readability
-	bgColor := color.RGBA{R: 0, G: 0, B: 0, A: 180}
-	bgRect := image.Rect(x-5, y-5, x+280, y+85)
+	bgColor := color.RGBA{R: 0, G: 0, B: 0, A: 50}
+	bgRect := image.Rect(x-5, y-5, x+150, y+85)
 	for py := bgRect.Min.Y; py < bgRect.Max.Y; py++ {
 		for px := bgRect.Min.X; px < bgRect.Max.X; px++ {
 			if px >= 0 && px < r.camera.ImageWidth && py >= 0 && py < r.camera.ImageHeight {
@@ -119,8 +119,8 @@ func (r *ProgressiveRenderer) drawStatsToFramebuffer() {
 	lineHeight := 12
 
 	// Draw semi-transparent background
-	bgColor := color.RGBA{R: 0, G: 0, B: 0, A: 220}
-	bgRect := image.Rect(x-5, y-5, x+280, y+85)
+	bgColor := color.RGBA{R: 0, G: 0, B: 0, A: 50}
+	bgRect := image.Rect(x-5, y-5, x+150, y+85)
 	for py := bgRect.Min.Y; py < bgRect.Max.Y; py++ {
 		for px := bgRect.Min.X; px < bgRect.Max.X; px++ {
 			if px >= 0 && px < r.camera.ImageWidth && py >= 0 && py < r.camera.ImageHeight {
