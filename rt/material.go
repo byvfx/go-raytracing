@@ -4,6 +4,7 @@ import "math"
 
 type Material interface {
 	Scatter(rIn Ray, rec *HitRecord, attenuation *Color, scattered *Ray) bool
+	Emitted(u, v float64, p Point3) Color
 }
 
 type Lambertian struct {
@@ -34,6 +35,9 @@ func (l *Lambertian) Scatter(rIn Ray, rec *HitRecord, attenuation *Color, scatte
 
 	return true
 }
+func (l *Lambertian) Emitted(u, v float64, p Point3) Color {
+	return Color{X: 0, Y: 0, Z: 0}
+}
 
 type Metal struct {
 	Albedo Color
@@ -52,20 +56,14 @@ func NewMetal(albedo Color, fuzz float64) *Metal {
 
 func (m *Metal) Scatter(rIn Ray, rec *HitRecord, attenuation *Color, scattered *Ray) bool {
 	reflected := Reflect(rIn.Direction(), rec.Normal)
-
 	reflected = reflected.Unit().Add(RandomUnitVector().Scale(m.Fuzz))
-
-	// Create the scattered ray
-	// C++: scattered = ray(rec.p, reflected);
 	*scattered = NewRay(rec.P, reflected, rIn.Time())
-
-	// Set the attenuation (color of the metal)
-	// C++: attenuation = albedo;
 	*attenuation = m.Albedo
-
-	// Only scatter if reflected ray is above the surface (not absorbed into it)
-	// C++: return (dot(scattered.direction(), rec.normal) > 0);
 	return Dot(scattered.Direction(), rec.Normal) > 0
+}
+
+func (m *Metal) Emitted(u, v float64, p Point3) Color {
+	return Color{X: 0, Y: 0, Z: 0}
 }
 
 type Dielectric struct {
@@ -108,4 +106,31 @@ func (d *Dielectric) Scatter(rIn Ray, rec *HitRecord, attenuation *Color, scatte
 	*scattered = NewRay(rec.P, direction, rIn.Time())
 
 	return true
+}
+func (d *Dielectric) Emitted(u, v float64, p Point3) Color {
+	return Color{X: 0, Y: 0, Z: 0}
+}
+
+// light material
+type DiffuseLight struct {
+	tex Texture
+}
+
+func NewDiffuseLight(tex Texture) *DiffuseLight {
+	return &DiffuseLight{
+		tex: tex,
+	}
+}
+func NewDiffuseLightColor(emit Color) *DiffuseLight {
+	return &DiffuseLight{
+		tex: NewSolidColor(emit),
+	}
+}
+
+func (dl *DiffuseLight) Scatter(rIn Ray, rec *HitRecord, attenuation *Color, scattered *Ray) bool {
+	return false
+}
+
+func (dl *DiffuseLight) Emitted(u, v float64, p Point3) Color {
+	return dl.tex.Value(u, v, p)
 }
