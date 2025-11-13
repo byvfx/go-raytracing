@@ -9,6 +9,11 @@ type Vec3 struct {
 	X, Y, Z float64
 }
 
+// Value implements Texture.
+func (Vec3) Value(u float64, v float64, p Point3) Color {
+	panic("unimplemented")
+}
+
 // Vector method
 func NewVec3(x, y, z float64) Vec3 { return Vec3{X: x, Y: y, Z: z} }
 
