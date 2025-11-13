@@ -1,4 +1,5 @@
 // TODO add option for Depth of Field, so we can set a global flag that will enable/disable defocus blur
+// TODO add independent samples for area lights vs camera samples
 package rt
 
 import (
@@ -31,6 +32,7 @@ type Camera struct {
 	CameraMotion    bool
 	FreeCamera      bool
 	Forward         Vec3
+	Background      Color
 
 	pixelsSamplesScale float64
 	center             Point3
@@ -65,6 +67,7 @@ func NewCamera() *Camera {
 		CameraMotion:    false,
 		FreeCamera:      false,
 		Forward:         Vec3{0, 0, -1},
+		Background:      Color{X: 0.0, Y: 0.0, Z: 0.0},
 	}
 }
 
@@ -85,9 +88,11 @@ type CameraPreset struct {
 	Vup             Vec3
 	FreeCamera      bool
 	Forward         Vec3
+	Background      Color
 }
 
 // camera presets
+// TODO: add presets with blackground color
 func QuickPreview() CameraPreset {
 	return CameraPreset{
 		AspectRatio:     16.0 / 9.0,
@@ -100,6 +105,7 @@ func QuickPreview() CameraPreset {
 		LookFrom:        Point3{X: 13, Y: 2, Z: 3},
 		LookAt:          Point3{X: 0, Y: 0, Z: 0},
 		Vup:             Vec3{X: 0, Y: 1, Z: 0},
+		Background:      Color{X: 0.5, Y: 0.7, Z: 1.0},
 	}
 }
 
@@ -115,6 +121,7 @@ func StandardQuality() CameraPreset {
 		LookFrom:        Point3{X: 13, Y: 2, Z: 3},
 		LookAt:          Point3{X: 0, Y: 0, Z: 0},
 		Vup:             Vec3{X: 0, Y: 1, Z: 0},
+		Background:      Color{X: 0.5, Y: 0.7, Z: 1.0},
 	}
 }
 
@@ -130,6 +137,7 @@ func HighQuality() CameraPreset {
 		LookFrom:        Point3{X: 13, Y: 2, Z: 3},
 		LookAt:          Point3{X: 0, Y: 0, Z: 0},
 		Vup:             Vec3{X: 0, Y: 1, Z: 0},
+		Background:      Color{X: 0.5, Y: 0.7, Z: 1.0},
 	}
 
 }
@@ -361,24 +369,33 @@ func (c *Camera) RayColor(r Ray, depth int, world Hittable) Color {
 
 	rec := &HitRecord{}
 
-	if world.Hit(r, NewInterval(0.001, math.Inf(1)), rec) {
-		var attenuation Color
-		var scattered Ray
-
-		if rec.Mat.Scatter(r, rec, &attenuation, &scattered) {
-			return attenuation.Mult(c.RayColor(scattered, depth-1, world))
-		}
-		return Color{X: 0, Y: 0, Z: 0}
+	// If the ray hits nothing, return the background color
+	if !world.Hit(r, NewInterval(0.001, math.Inf(1)), rec) {
+		return c.Background
 	}
-	return c.skyColor(r)
+
+	var attenuation Color
+	var scattered Ray
+	colorFromEmission := rec.Mat.Emitted(rec.U, rec.V, rec.P)
+
+	if !rec.Mat.Scatter(r, rec, &attenuation, &scattered) {
+		return colorFromEmission
+	}
+
+	colorFromScatter := attenuation.Mult(c.RayColor(scattered, depth-1, world))
+	return colorFromEmission.Add(colorFromScatter)
 }
-func (c *Camera) skyColor(r Ray) Color {
-	unitDirection := r.Direction().Unit()
-	a := 0.5 * (unitDirection.Y + 1.0)
-	white := Color{X: 1.0, Y: 1.0, Z: 1.0}
-	blue := Color{X: 0.5, Y: 0.7, Z: 1.0}
-	return white.Scale(1.0 - a).Add(blue.Scale(a))
-}
+
+// func (c *Camera) skyColor(r Ray) Color {
+// 	if c.Background.X > 0 || c.Background.Y > 0 || c.Background.Z > 0 {
+// 		return c.Background
+// 	}
+// 	unitDirection := r.Direction().Unit()
+// 	a := 0.5 * (unitDirection.Y + 1.0)
+// 	white := Color{X: 1.0, Y: 1.0, Z: 1.0}
+// 	blue := Color{X: 0.5, Y: 0.7, Z: 1.0}
+// 	return white.Scale(1.0 - a).Add(blue.Scale(a))
+// }
 
 // =============================================================================
 // RENDERING
