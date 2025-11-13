@@ -1,3 +1,5 @@
+//TODO save the render stats to a thinner bar at the bottom of the image instead of a large block
+
 package rt
 
 import (
