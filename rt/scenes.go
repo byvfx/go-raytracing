@@ -251,6 +251,7 @@ func PrimitivesScene() *HittableList {
 	magentaMat := NewLambertian(Color{X: 0.8, Y: 0.1, Z: 0.8})
 	orangeMat := NewLambertian(Color{X: 1.0, Y: 0.5, Z: 0.0})
 	metalMat := NewMetal(Color{X: 0.7, Y: 0.7, Z: 0.7}, 0.1)
+	lightMaterial := NewDiffuseLight(NewSolidColor(Color{X: 7, Y: 7, Z: 7}))
 
 	checkerMat := NewLambertianTexture(NewCheckerTextureFromColors(1.0,
 		Color{X: 0.0, Y: 0.0, Z: 0.0},
@@ -362,6 +363,16 @@ func PrimitivesScene() *HittableList {
 	))
 
 	// =============================================================================
+	// OVERHEAD LIGHT SOURCE
+	// =============================================================================
+	world.Add(NewQuad(
+		Point3{X: -2, Y: 5, Z: -2},
+		Vec3{X: 4, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 4},
+		lightMaterial,
+	))
+
+	// =============================================================================
 	// RIGHT: Metal Sphere
 	// =============================================================================
 	world.Add(NewSphere(Point3{X: 5, Y: 0.6, Z: 0}, 0.8, metalMat))
@@ -381,4 +392,13 @@ func PrimitivesCamera() *Camera {
 		SetLens(45, 2, 10). // 45° FOV, no defocus blur, focus distance 10
 		Build()
 	return camera
+}
+
+// ==================================================================================
+// Cornell Box Scene
+// ==================================================================================
+func CornellBoxScene() *HittableList {
+	// TODO: implement Cornell Box scene
+	world := NewHittableList()
+	return world
 }
