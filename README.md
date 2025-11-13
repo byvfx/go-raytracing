@@ -155,7 +155,8 @@ world := rt.RandomSceneWithConfig(config)
 - [x] Texture system (solid, checker, image)
 - [x] Perlin noise
 - [x] Quadrilaterals
-- [ ] Lights
+- [x] Lights
+- [ ] Cornel Box scene
 - [ ] Instances (translation/rotation)
 - [ ] Volumes (fog/smoke)
 
@@ -167,6 +168,7 @@ world := rt.RandomSceneWithConfig(config)
 - [x] Builder pattern API
 - [x] Triangles primitive
 - [x] Circle/Disk primitive
+- [x] Preset scenes with cameras
 
 ## Resources
 
