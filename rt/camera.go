@@ -93,6 +93,8 @@ type CameraPreset struct {
 
 // camera presets
 // TODO: add presets with blackground color
+// TODO: add presets with free camera
+// TODO: add skyColor a few presets
 func QuickPreview() CameraPreset {
 	return CameraPreset{
 		AspectRatio:     16.0 / 9.0,
@@ -154,6 +156,7 @@ func (c *Camera) ApplyPreset(preset CameraPreset) {
 	c.Vup = preset.Vup
 	c.FreeCamera = preset.FreeCamera
 	c.Forward = preset.Forward
+	c.Background = preset.Background
 }
 
 // =============================================================================
