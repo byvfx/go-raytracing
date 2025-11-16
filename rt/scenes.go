@@ -398,7 +398,65 @@ func PrimitivesCamera() *Camera {
 // Cornell Box Scene
 // ==================================================================================
 func CornellBoxScene() *HittableList {
-	// TODO: implement Cornell Box scene
 	world := NewHittableList()
+
+	whiteMat := NewLambertian(Color{X: 0.73, Y: 0.73, Z: 0.73})
+	redMat := NewLambertian(Color{X: 0.65, Y: 0.05, Z: 0.05})
+	greenMat := NewLambertian(Color{X: 0.12, Y: 0.45, Z: 0.15})
+	lightMat := NewDiffuseLight(NewSolidColor(Color{X: 15, Y: 15, Z: 15}))
+
+	world.Add(NewQuad(
+		Point3{X: 555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 555, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 555},
+		greenMat,
+	))
+	world.Add(NewQuad(
+		Point3{X: 0, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 555, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 555},
+		redMat,
+	))
+	// check this
+	world.Add(NewQuad(
+		Point3{X: 213, Y: 554, Z: 227},
+		Vec3{X: 130, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 105},
+		lightMat,
+	))
+	world.Add(NewQuad(
+		Point3{X: 0, Y: 0, Z: 0},
+		Vec3{X: 555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 555},
+		whiteMat,
+	))
+	world.Add(NewQuad(
+		Point3{X: 555, Y: 555, Z: 555},
+		Vec3{X: -555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: -555},
+		whiteMat,
+	))
+	world.Add(NewQuad(
+		Point3{X: 0, Y: 0, Z: 555},
+		Vec3{X: 555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 555, Z: 0},
+		whiteMat,
+	))
+
 	return world
+}
+
+func CornellBoxCamera() *Camera {
+	camera := NewCameraBuilder().
+		SetResolution(600, 1.0).
+		SetQuality(200, 50).
+		SetPosition(
+			Point3{X: 278, Y: 278, Z: -800},
+			Point3{X: 278, Y: 278, Z: 0},
+			Vec3{X: 0, Y: 1, Z: 0},
+		).
+		SetLens(40, 0, 10).
+		SetBackground(Color{0, 0, 0}). // 40° FOV, no defocus blur, focus distance 10
+		Build()
+	return camera
 }
