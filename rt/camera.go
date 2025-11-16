@@ -221,6 +221,10 @@ func (c *Camera) EnableFreeCamera(position Point3, forward Vec3, vup Vec3) *Came
 	c.FreeCamera = true
 	return c
 }
+func (c *Camera) SetBackground(color Color) *Camera {
+	c.Background = color
+	return c
+}
 
 func (c *Camera) Build() *Camera {
 	c.Initialize()
