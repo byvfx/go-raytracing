@@ -443,6 +443,18 @@ func CornellBoxScene() *HittableList {
 		whiteMat,
 	))
 
+	world.Add(Box(
+		Point3{X: 130, Y: 0, Z: 65},
+		Point3{X: 295, Y: 165, Z: 230},
+		whiteMat,
+	))
+
+	world.Add(Box(
+		Point3{X: 265, Y: 0, Z: 295},
+		Point3{X: 430, Y: 330, Z: 460},
+		whiteMat,
+	))
+
 	return world
 }
 
