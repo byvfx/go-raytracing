@@ -95,10 +95,6 @@ type CameraPreset struct {
 	UseSkyGradient  bool
 }
 
-// camera presets
-// TODO: add presets with blackground color
-// TODO: add presets with free camera
-// TODO: add skyColor a few presets
 func QuickPreview() CameraPreset {
 	return CameraPreset{
 		AspectRatio:     16.0 / 9.0,
@@ -587,9 +583,5 @@ func (c *Camera) progressBar(done, total, width int) {
 	p := float64(done) / float64(total)
 	filled := min(int(p*float64(width)+0.5), width)
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
-	// happy  little accident enable to see each progress step
-	//fmt.Fprintln(os.Stderr)
-	//
 	fmt.Fprintf(os.Stderr, "\r[%s] %3.0f%%  scanlines remaining: %d", bar, p*100, total-done)
-
 }
