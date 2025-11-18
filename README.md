@@ -63,7 +63,6 @@ camera := rt.NewCameraBuilder().
 - **Metal** - Reflective surfaces w/ adjustable fuzz
 - **Dielectric** - Glass/transparent materials w/ refraction, Fresnel effects (Schlick approximation), hollow sphere support
 - **DiffuseLight** - Emissive surfaces for area lights
-- **DiffuseLight** - Emissive surfaces for area lights
 
 ### Textures
 
@@ -203,11 +202,6 @@ world := rt.RandomSceneWithConfig(config)
 - [x] Scene configuration system
 - [x] Builder pattern API for camera
 - [x] Triangle primitive
-- [x] Circle/Disk primitive
-- [x] Compound primitives (Box, Pyramid)
-- [x] Transform system with SRT ordering
-- [x] Next Event Estimation (NEE) for direct lighting
-- [x] Preset scenes with cameras
 - [x] Circle/Disk primitive
 - [x] Compound primitives (Box, Pyramid)
 - [x] Transform system with SRT ordering
