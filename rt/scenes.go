@@ -342,6 +342,7 @@ func CornellBoxScene() *HittableList {
 	greenMat := NewLambertian(Color{X: 0.12, Y: 0.45, Z: 0.15})
 	lightMat := NewDiffuseLight(NewSolidColor(Color{X: 15, Y: 15, Z: 15}))
 
+	// Walls
 	world.Add(NewQuad(
 		Point3{X: 555, Y: 0, Z: 0},
 		Vec3{X: 0, Y: 555, Z: 0},
@@ -353,13 +354,6 @@ func CornellBoxScene() *HittableList {
 		Vec3{X: 0, Y: 555, Z: 0},
 		Vec3{X: 0, Y: 0, Z: 555},
 		redMat,
-	))
-	// check this
-	world.Add(NewQuad(
-		Point3{X: 213, Y: 554, Z: 227},
-		Vec3{X: 130, Y: 0, Z: 0},
-		Vec3{X: 0, Y: 0, Z: 105},
-		lightMat,
 	))
 	world.Add(NewQuad(
 		Point3{X: 0, Y: 0, Z: 0},
@@ -379,18 +373,43 @@ func CornellBoxScene() *HittableList {
 		Vec3{X: 0, Y: 555, Z: 0},
 		whiteMat,
 	))
-
-	world.Add(Box(
-		Point3{X: 130, Y: 0, Z: 65},
-		Point3{X: 295, Y: 165, Z: 230},
-		whiteMat,
+	// Light
+	world.Add(NewQuad(
+		Point3{X: 213, Y: 554, Z: 227},
+		Vec3{X: 130, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 105},
+		lightMat,
 	))
-
-	world.Add(Box(
-		Point3{X: 265, Y: 0, Z: 295},
-		Point3{X: 430, Y: 330, Z: 460},
+	// Boxes
+	box1 := Box(
+		Point3{X: 0, Y: 0, Z: 0},
+		Point3{X: 165, Y: 330, Z: 165},
 		whiteMat,
-	))
+	)
+
+	box1 = Ry(box1, 15)
+	box1 = NewTranslate(box1, Vec3{X: 265, Y: 0, Z: 295})
+	world.Add(box1)
+
+	box2 := Box(
+		Point3{X: 0, Y: 0, Z: 0},
+		Point3{X: 165, Y: 165, Z: 165},
+		whiteMat,
+	)
+	box2 = Ry(box2, -18)
+	box2 = NewTranslate(box2, Vec3{X: 130, Y: 0, Z: 65})
+	world.Add(box2)
+	// world.Add(Box(
+	// 	Point3{X: 130, Y: 0, Z: 65},
+	// 	Point3{X: 295, Y: 165, Z: 230},
+	// 	whiteMat,
+	// ))
+
+	// world.Add(Box(
+	// 	Point3{X: 265, Y: 0, Z: 295},
+	// 	Point3{X: 430, Y: 330, Z: 460},
+	// 	whiteMat,
+	// ))
 
 	return world
 }
@@ -398,7 +417,7 @@ func CornellBoxScene() *HittableList {
 func CornellBoxCamera() *Camera {
 	camera := NewCameraBuilder().
 		SetResolution(600, 1.0).
-		SetQuality(200, 50).
+		SetQuality(500, 50).
 		SetPosition(
 			Point3{X: 278, Y: 278, Z: -800},
 			Point3{X: 278, Y: 278, Z: 0},

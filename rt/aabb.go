@@ -115,3 +115,11 @@ func (box *AABB) padToMinimums() {
 		box.Z = box.Z.Expand(delta)
 	}
 }
+
+func (box AABB) Translate(offset Vec3) AABB {
+	return NewAABBFromIntervals(
+		box.X.Add(offset.X),
+		box.Y.Add(offset.Y),
+		box.Z.Add(offset.Z),
+	)
+}

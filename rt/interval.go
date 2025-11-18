@@ -68,3 +68,10 @@ func (i Interval) Clamp(x float64) float64 {
 	}
 	return x
 }
+
+func (i Interval) Add(displacement float64) Interval {
+	return Interval{
+		Min: i.Min + displacement,
+		Max: i.Max + displacement,
+	}
+}
