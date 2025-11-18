@@ -246,10 +246,10 @@ func PrimitivesScene() *HittableList {
 	redMat := NewLambertian(Color{X: 0.8, Y: 0.1, Z: 0.1})
 	greenMat := NewLambertian(Color{X: 0.1, Y: 0.8, Z: 0.1})
 	blueMat := NewLambertian(Color{X: 0.1, Y: 0.1, Z: 0.8})
-	yellowMat := NewLambertian(Color{X: 0.8, Y: 0.8, Z: 0.1})
-	cyanMat := NewLambertian(Color{X: 0.1, Y: 0.8, Z: 0.8})
-	magentaMat := NewLambertian(Color{X: 0.8, Y: 0.1, Z: 0.8})
-	orangeMat := NewLambertian(Color{X: 1.0, Y: 0.5, Z: 0.0})
+	//yellowMat := NewLambertian(Color{X: 0.8, Y: 0.8, Z: 0.1})
+	//cyanMat := NewLambertian(Color{X: 0.1, Y: 0.8, Z: 0.8})
+	//magentaMat := NewLambertian(Color{X: 0.8, Y: 0.1, Z: 0.8})
+	//orangeMat := NewLambertian(Color{X: 1.0, Y: 0.5, Z: 0.0})
 	metalMat := NewMetal(Color{X: 0.7, Y: 0.7, Z: 0.7}, 0.1)
 	lightMaterial := NewDiffuseLight(NewSolidColor(Color{X: 7, Y: 7, Z: 7}))
 
@@ -279,34 +279,7 @@ func PrimitivesScene() *HittableList {
 	pyramidHeight := 1.8
 	pyramidBase := 1.4
 
-	// Front face (green)
-	world.Add(NewTriangle(
-		Point3{X: pyramidX, Y: -1, Z: pyramidBase / 2},
-		Point3{X: pyramidX - pyramidBase/2, Y: -1, Z: -pyramidBase / 2},
-		Point3{X: pyramidX, Y: pyramidHeight, Z: 0},
-		greenMat,
-	))
-	// Right face (blue)
-	world.Add(NewTriangle(
-		Point3{X: pyramidX, Y: -1, Z: pyramidBase / 2},
-		Point3{X: pyramidX, Y: pyramidHeight, Z: 0},
-		Point3{X: pyramidX + pyramidBase/2, Y: -1, Z: -pyramidBase / 2},
-		blueMat,
-	))
-	// Back face (yellow)
-	world.Add(NewTriangle(
-		Point3{X: pyramidX + pyramidBase/2, Y: -1, Z: -pyramidBase / 2},
-		Point3{X: pyramidX, Y: pyramidHeight, Z: 0},
-		Point3{X: pyramidX - pyramidBase/2, Y: -1, Z: -pyramidBase / 2},
-		yellowMat,
-	))
-	// Left face (cyan)
-	world.Add(NewTriangle(
-		Point3{X: pyramidX - pyramidBase/2, Y: -1, Z: -pyramidBase / 2},
-		Point3{X: pyramidX, Y: pyramidHeight, Z: 0},
-		Point3{X: pyramidX, Y: -1, Z: pyramidBase / 2},
-		cyanMat,
-	))
+	world.Add(Pyramid(Point3{X: pyramidX, Y: -1, Z: 0}, pyramidBase, pyramidHeight, greenMat))
 
 	// =============================================================================
 	// CENTER: Glass Sphere
@@ -319,47 +292,10 @@ func PrimitivesScene() *HittableList {
 	cubeX := 2.5
 	cubeSize := 1.0
 
-	// Front face (red)
-	world.Add(NewQuad(
-		Point3{X: cubeX - cubeSize/2, Y: -1, Z: cubeSize / 2},
-		Vec3{X: cubeSize, Y: 0, Z: 0},
-		Vec3{X: 0, Y: cubeSize, Z: 0},
-		redMat,
-	))
-	// Back face (green)
-	world.Add(NewQuad(
-		Point3{X: cubeX + cubeSize/2, Y: -1, Z: -cubeSize / 2},
-		Vec3{X: -cubeSize, Y: 0, Z: 0},
-		Vec3{X: 0, Y: cubeSize, Z: 0},
-		greenMat,
-	))
-	// Left face (blue)
-	world.Add(NewQuad(
+	world.Add(Box(
 		Point3{X: cubeX - cubeSize/2, Y: -1, Z: -cubeSize / 2},
-		Vec3{X: 0, Y: 0, Z: cubeSize},
-		Vec3{X: 0, Y: cubeSize, Z: 0},
+		Point3{X: cubeX + cubeSize/2, Y: -1 + cubeSize, Z: cubeSize / 2},
 		blueMat,
-	))
-	// Right face (yellow)
-	world.Add(NewQuad(
-		Point3{X: cubeX + cubeSize/2, Y: -1, Z: cubeSize / 2},
-		Vec3{X: 0, Y: 0, Z: -cubeSize},
-		Vec3{X: 0, Y: cubeSize, Z: 0},
-		yellowMat,
-	))
-	// Top face (magenta)
-	world.Add(NewQuad(
-		Point3{X: cubeX - cubeSize/2, Y: -1 + cubeSize, Z: -cubeSize / 2},
-		Vec3{X: cubeSize, Y: 0, Z: 0},
-		Vec3{X: 0, Y: 0, Z: cubeSize},
-		magentaMat,
-	))
-	// Bottom face (orange)
-	world.Add(NewQuad(
-		Point3{X: cubeX - cubeSize/2, Y: -1, Z: cubeSize / 2},
-		Vec3{X: cubeSize, Y: 0, Z: 0},
-		Vec3{X: 0, Y: 0, Z: -cubeSize},
-		orangeMat,
 	))
 
 	// =============================================================================
@@ -389,7 +325,8 @@ func PrimitivesCamera() *Camera {
 			Point3{X: 0, Y: 0, Z: 0},
 			Vec3{X: 0, Y: 1, Z: 0},
 		).
-		SetLens(45, 2, 10). // 45° FOV, no defocus blur, focus distance 10
+		SetLens(45, 2, 10).
+		SetBackground(Color{0, 0, 0}).
 		Build()
 	return camera
 }

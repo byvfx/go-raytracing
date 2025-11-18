@@ -101,6 +101,8 @@ Predefined scenes:
 - `PerlinSpheresScene()` - Spheres with Perlin noise textures
 - `EarthScene()` - Textured Earth sphere
 - `QuadsScene()` - Box-like room made of quads
+- `CornellBoxScene()` - Classic Cornell Box setup
+- `PrimitivesScene()` - Scene showcasing various primitives
 
 `SceneConfig` allows control over material probabilities, motion blur per material, grid bounds, etc.
 
@@ -121,9 +123,21 @@ renderer := rt.NewProgressiveRenderer(camera, bvh)
 ebiten.RunGame(renderer)
 ```
 
-**Custom scene config:**
+```go
+// Camera Bulilder API
+camera := rt.NewCamera().
+    SetResolution(800, 16.0/9.0).
+    SetQuality(100, 50).
+    SetPosition(
+        rt.Point3{X: 13, Y: 2, Z: 3},
+        rt.Point3{X: 0, Y: 0, Z: 0},
+        rt.Vec3{X: 0, Y: 1, Z: 0},
+    ).
+    SetLens(20, 0.6, 10.0)  
+```
 
 ```go
+// Custom Random Scene
 config := rt.DefaultSceneConfig()
 config.LambertProb = 0.5
 config.MetalProb = 0.3
@@ -156,7 +170,7 @@ world := rt.RandomSceneWithConfig(config)
 - [x] Perlin noise
 - [x] Quadrilaterals
 - [x] Lights
-- [ ] Cornel Box scene
+- [x] Cornel Box scene
 - [ ] Instances (translation/rotation)
 - [ ] Volumes (fog/smoke)
 
