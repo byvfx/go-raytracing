@@ -380,36 +380,30 @@ func CornellBoxScene() *HittableList {
 		Vec3{X: 0, Y: 0, Z: 105},
 		lightMat,
 	))
-	// Boxes
+	//Boxes
 	box1 := Box(
 		Point3{X: 0, Y: 0, Z: 0},
 		Point3{X: 165, Y: 330, Z: 165},
 		whiteMat,
 	)
-
-	box1 = Ry(box1, 15)
-	box1 = NewTranslate(box1, Vec3{X: 265, Y: 0, Z: 295})
-	world.Add(box1)
+	box1Xform := NewTransform().
+		SetScale(Vec3{X: 1.0, Y: 1.0, Z: 1.0}).
+		SetRotationY(15).
+		SetPosition(Vec3{X: 265, Y: 0, Z: 295}).
+		Apply(box1)
+	world.Add(box1Xform)
 
 	box2 := Box(
 		Point3{X: 0, Y: 0, Z: 0},
 		Point3{X: 165, Y: 165, Z: 165},
 		whiteMat,
 	)
-	box2 = Ry(box2, -18)
-	box2 = NewTranslate(box2, Vec3{X: 130, Y: 0, Z: 65})
-	world.Add(box2)
-	// world.Add(Box(
-	// 	Point3{X: 130, Y: 0, Z: 65},
-	// 	Point3{X: 295, Y: 165, Z: 230},
-	// 	whiteMat,
-	// ))
-
-	// world.Add(Box(
-	// 	Point3{X: 265, Y: 0, Z: 295},
-	// 	Point3{X: 430, Y: 330, Z: 460},
-	// 	whiteMat,
-	// ))
+	box2Xform := NewTransform().
+		SetScale(Vec3{X: 1.0, Y: 1.0, Z: 1.0}).
+		SetRotationY(-18).
+		SetPosition(Vec3{X: 130, Y: 0, Z: 65}).
+		Apply(box2)
+	world.Add(box2Xform)
 
 	return world
 }
@@ -417,7 +411,7 @@ func CornellBoxScene() *HittableList {
 func CornellBoxCamera() *Camera {
 	camera := NewCameraBuilder().
 		SetResolution(600, 1.0).
-		SetQuality(500, 50).
+		SetQuality(1000, 20).
 		SetPosition(
 			Point3{X: 278, Y: 278, Z: -800},
 			Point3{X: 278, Y: 278, Z: 0},
