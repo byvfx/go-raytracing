@@ -33,6 +33,8 @@ type Camera struct {
 	FreeCamera      bool
 	Forward         Vec3
 	Background      Color
+	UseSkyGradient  bool
+	Lights          []Hittable
 
 	pixelsSamplesScale float64
 	center             Point3
@@ -68,6 +70,7 @@ func NewCamera() *Camera {
 		FreeCamera:      false,
 		Forward:         Vec3{0, 0, -1},
 		Background:      Color{X: 0.0, Y: 0.0, Z: 0.0},
+		UseSkyGradient:  false,
 	}
 }
 
@@ -89,6 +92,7 @@ type CameraPreset struct {
 	FreeCamera      bool
 	Forward         Vec3
 	Background      Color
+	UseSkyGradient  bool
 }
 
 // camera presets
@@ -108,6 +112,7 @@ func QuickPreview() CameraPreset {
 		LookAt:          Point3{X: 0, Y: 0, Z: 0},
 		Vup:             Vec3{X: 0, Y: 1, Z: 0},
 		Background:      Color{X: 0.5, Y: 0.7, Z: 1.0},
+		UseSkyGradient:  true,
 	}
 }
 
@@ -223,6 +228,15 @@ func (c *Camera) EnableFreeCamera(position Point3, forward Vec3, vup Vec3) *Came
 }
 func (c *Camera) SetBackground(color Color) *Camera {
 	c.Background = color
+	return c
+}
+
+func (c *Camera) EnableSkyGradient(enable bool) *Camera {
+	c.UseSkyGradient = enable
+	return c
+}
+func (c *Camera) AddLight(light Hittable) *Camera {
+	c.Lights = append(c.Lights, light)
 	return c
 }
 
@@ -378,31 +392,124 @@ func (c *Camera) RayColor(r Ray, depth int, world Hittable) Color {
 
 	// If the ray hits nothing, return the background color
 	if !world.Hit(r, NewInterval(0.001, math.Inf(1)), rec) {
+		if c.UseSkyGradient {
+			return c.SkyGradient(r)
+		}
 		return c.Background
 	}
 
 	var attenuation Color
 	var scattered Ray
+
 	colorFromEmission := rec.Mat.Emitted(rec.U, rec.V, rec.P)
 
 	if !rec.Mat.Scatter(r, rec, &attenuation, &scattered) {
+		// Hit a light source - return emission only
 		return colorFromEmission
 	}
 
+	// For scattered rays, add direct light sampling (NEE)
+	directLight := Color{X: 0, Y: 0, Z: 0}
+	if len(c.Lights) > 0 {
+		lightIdx := int(RandomDouble() * float64(len(c.Lights)))
+		if lightIdx >= len(c.Lights) {
+			lightIdx = len(c.Lights) - 1
+		}
+		directLight = c.sampleLight(rec.P, rec.Normal, world, lightIdx)
+	}
+
+	// Recursively trace scattered ray (indirect illumination)
 	colorFromScatter := attenuation.Mult(c.RayColor(scattered, depth-1, world))
-	return colorFromEmission.Add(colorFromScatter)
+
+	// Combine: direct lighting + indirect lighting
+	// Note: We don't add colorFromEmission here because this surface scatters (not a light)
+	return directLight.Mult(attenuation).Add(colorFromScatter)
 }
 
-// func (c *Camera) skyColor(r Ray) Color {
-// 	if c.Background.X > 0 || c.Background.Y > 0 || c.Background.Z > 0 {
-// 		return c.Background
-// 	}
-// 	unitDirection := r.Direction().Unit()
-// 	a := 0.5 * (unitDirection.Y + 1.0)
-// 	white := Color{X: 1.0, Y: 1.0, Z: 1.0}
-// 	blue := Color{X: 0.5, Y: 0.7, Z: 1.0}
-// 	return white.Scale(1.0 - a).Add(blue.Scale(a))
-// }
+func (c *Camera) SkyGradient(r Ray) Color {
+	unitDirection := r.Direction().Unit()
+	a := 0.5 * (unitDirection.Y + 1.0)
+	white := Color{X: 1.0, Y: 1.0, Z: 1.0}
+	blue := Color{X: 0.5, Y: 0.7, Z: 1.0}
+	return white.Scale(1.0 - a).Add(blue.Scale(a))
+}
+
+var (
+	BackgroundSkyColor = Color{X: 0.5, Y: 0.7, Z: 1.0}
+	BackgroundBlack    = Color{X: 0.0, Y: 0.0, Z: 0.0}
+	BackgroundWhite    = Color{X: 1.0, Y: 1.0, Z: 1.0}
+	BackgroundGray     = Color{X: 0.5, Y: 0.5, Z: 0.5}
+	BackgroundSunset   = Color{X: 1.0, Y: 0.5, Z: 0.3}
+	BackgroundNight    = Color{X: 0.05, Y: 0.05, Z: 0.2}
+)
+
+// In camera.go - replace the sampleLight method
+
+func (c *Camera) sampleLight(hitPoint Point3, hitNormal Vec3, world Hittable, lightIdx int) Color {
+	if lightIdx >= len(c.Lights) {
+		return Color{X: 0, Y: 0, Z: 0}
+	}
+
+	light := c.Lights[lightIdx]
+	lightQuad, ok := light.(*Quad)
+	if !ok {
+		return Color{X: 0, Y: 0, Z: 0}
+	}
+
+	// Sample random point on light surface
+	lightPoint := lightQuad.SamplePoint()
+
+	// Direction from hit point to light sample
+	toLight := lightPoint.Sub(hitPoint)
+	distanceToLight := toLight.Len()
+	lightDir := toLight.Unit()
+
+	// Check if light is on the same side as surface normal
+	cosTheta := Dot(hitNormal, lightDir)
+	if cosTheta <= 0 {
+		return Color{X: 0, Y: 0, Z: 0}
+	}
+
+	// Shadow ray test
+	shadowRay := NewRay(hitPoint, lightDir, 0)
+	shadowRec := &HitRecord{}
+
+	if world.Hit(shadowRay, NewInterval(0.001, distanceToLight-0.001), shadowRec) {
+		// Something is blocking the light
+		return Color{X: 0, Y: 0, Z: 0}
+	}
+
+	// Get light emission
+	emission := lightQuad.mat.Emitted(0, 0, lightPoint)
+
+	// Calculate PDF using solid angle conversion
+	lightArea := lightQuad.Area()
+	cosLightAngle := math.Abs(Dot(lightQuad.normal, lightDir.Neg()))
+
+	if cosLightAngle < 0.001 {
+		return Color{X: 0, Y: 0, Z: 0}
+	}
+
+	// PDF for uniform area sampling: 1/area
+	// Converting to solid angle: pdf_solidAngle = (distance² / (cos_light * area))
+	// Light contribution: emission * cos_surface / pdf_solidAngle
+	// Simplifies to: emission * cos_surface * cos_light * area / distance²
+	pdfSolidAngle := (distanceToLight * distanceToLight) / (cosLightAngle * lightArea)
+
+	// Light contribution with proper PDF weighting
+	contribution := emission.Scale(cosTheta / pdfSolidAngle)
+
+	// Multiply by number of lights (probability of selecting this light is 1/numLights)
+	contribution = contribution.Scale(float64(len(c.Lights)))
+
+	// CLAMP to prevent fireflies - adjust this threshold as needed
+	maxComponent := 20.0
+	contribution.X = math.Min(contribution.X, maxComponent)
+	contribution.Y = math.Min(contribution.Y, maxComponent)
+	contribution.Z = math.Min(contribution.Z, maxComponent)
+
+	return contribution
+}
 
 // =============================================================================
 // RENDERING

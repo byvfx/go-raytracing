@@ -237,7 +237,7 @@ func QuadsCamera() *Camera {
 }
 
 // PrimitivesScene demonstrates all primitive types: sphere, circle, quad (as cube), triangle (as pyramid), and infinite plane
-func PrimitivesScene() *HittableList {
+func PrimitivesScene() (*HittableList, *Camera) {
 	world := NewHittableList()
 
 	// =============================================================================
@@ -246,12 +246,8 @@ func PrimitivesScene() *HittableList {
 	redMat := NewLambertian(Color{X: 0.8, Y: 0.1, Z: 0.1})
 	greenMat := NewLambertian(Color{X: 0.1, Y: 0.8, Z: 0.1})
 	blueMat := NewLambertian(Color{X: 0.1, Y: 0.1, Z: 0.8})
-	//yellowMat := NewLambertian(Color{X: 0.8, Y: 0.8, Z: 0.1})
-	//cyanMat := NewLambertian(Color{X: 0.1, Y: 0.8, Z: 0.8})
-	//magentaMat := NewLambertian(Color{X: 0.8, Y: 0.1, Z: 0.8})
-	//orangeMat := NewLambertian(Color{X: 1.0, Y: 0.5, Z: 0.0})
 	metalMat := NewMetal(Color{X: 0.7, Y: 0.7, Z: 0.7}, 0.1)
-	lightMaterial := NewDiffuseLight(NewSolidColor(Color{X: 7, Y: 7, Z: 7}))
+	lightMat := NewDiffuseLight(NewSolidColor(Color{X: 5, Y: 5, Z: 5}))
 
 	checkerMat := NewLambertianTexture(NewCheckerTextureFromColors(1.0,
 		Color{X: 0.0, Y: 0.0, Z: 0.0},
@@ -301,22 +297,19 @@ func PrimitivesScene() *HittableList {
 	// =============================================================================
 	// OVERHEAD LIGHT SOURCE
 	// =============================================================================
-	world.Add(NewQuad(
+	areaLight := NewQuad(
 		Point3{X: -2, Y: 5, Z: -2},
 		Vec3{X: 4, Y: 0, Z: 0},
 		Vec3{X: 0, Y: 0, Z: 4},
-		lightMaterial,
-	))
+		lightMat,
+	)
+	world.Add(areaLight)
 
 	// =============================================================================
 	// RIGHT: Metal Sphere
 	// =============================================================================
 	world.Add(NewSphere(Point3{X: 5, Y: 0.6, Z: 0}, 0.8, metalMat))
 
-	return world
-}
-
-func PrimitivesCamera() *Camera {
 	camera := NewCameraBuilder().
 		SetResolution(800, 16.0/9.0).
 		SetQuality(500, 50).
@@ -325,22 +318,32 @@ func PrimitivesCamera() *Camera {
 			Point3{X: 0, Y: 0, Z: 0},
 			Vec3{X: 0, Y: 1, Z: 0},
 		).
-		SetLens(45, 2, 10).
+		SetLens(45, 0, 10).
 		SetBackground(Color{0, 0, 0}).
+		AddLight(areaLight).
 		Build()
-	return camera
+
+	return world, camera
 }
 
 // ==================================================================================
 // Cornell Box Scene
 // ==================================================================================
-func CornellBoxScene() *HittableList {
+func CornellBoxScene() (*HittableList, *Camera) {
 	world := NewHittableList()
 
 	whiteMat := NewLambertian(Color{X: 0.73, Y: 0.73, Z: 0.73})
 	redMat := NewLambertian(Color{X: 0.65, Y: 0.05, Z: 0.05})
 	greenMat := NewLambertian(Color{X: 0.12, Y: 0.45, Z: 0.15})
-	lightMat := NewDiffuseLight(NewSolidColor(Color{X: 15, Y: 15, Z: 15}))
+	lightMat := NewDiffuseLight(NewSolidColor(Color{X: 1, Y: 1, Z: 1}))
+
+	areaLight := NewQuad(
+		Point3{X: 213, Y: 554, Z: 227},
+		Vec3{X: 130, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 105},
+		lightMat,
+	)
+	world.Add(areaLight)
 
 	// Walls
 	world.Add(NewQuad(
@@ -405,20 +408,18 @@ func CornellBoxScene() *HittableList {
 		Apply(box2)
 	world.Add(box2Xform)
 
-	return world
-}
-
-func CornellBoxCamera() *Camera {
 	camera := NewCameraBuilder().
 		SetResolution(600, 1.0).
-		SetQuality(1000, 20).
+		SetQuality(150, 10).
 		SetPosition(
 			Point3{X: 278, Y: 278, Z: -800},
 			Point3{X: 278, Y: 278, Z: 0},
 			Vec3{X: 0, Y: 1, Z: 0},
 		).
 		SetLens(40, 0, 10).
-		SetBackground(Color{0, 0, 0}). // 40° FOV, no defocus blur, focus distance 10
+		SetBackground(Color{0, 0, 0}).
+		AddLight(areaLight).
 		Build()
-	return camera
+
+	return world, camera
 }

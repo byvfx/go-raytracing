@@ -82,3 +82,29 @@ func (q *Quad) isInterior(a, b float64, rec *HitRecord) bool {
 	rec.V = b
 	return true
 }
+
+// SamplePoint returns a random point on the quad surface
+func (q *Quad) SamplePoint() Point3 {
+	// Random barycentric coordinates [0,1] x [0,1]
+	alpha := RandomDouble()
+	beta := RandomDouble()
+	return q.Q.Add(q.u.Scale(alpha)).Add(q.v.Scale(beta))
+}
+
+// Area returns the surface area of the quad
+func (q *Quad) Area() float64 {
+	return Cross(q.u, q.v).Len()
+}
+
+// PdfValue returns the probability density function value for sampling this quad
+func (q *Quad) PdfValue(origin Point3, direction Vec3) float64 {
+	rec := &HitRecord{}
+	if !q.Hit(NewRay(origin, direction, 0), NewInterval(0.001, math.Inf(1)), rec) {
+		return 0
+	}
+
+	distanceSquared := rec.T * rec.T * direction.Len2()
+	cosine := math.Abs(Dot(direction, rec.Normal) / direction.Len())
+
+	return distanceSquared / (cosine * q.Area())
+}
