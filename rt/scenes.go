@@ -1,5 +1,3 @@
-//TODO: add cameras that corresspond with each scene.
-
 package rt
 
 import (
@@ -33,18 +31,26 @@ func DefaultSceneConfig() SceneConfig {
 	}
 }
 
-func RandomScene() *HittableList {
+func RandomScene() (*HittableList, *Camera) {
 	return RandomSceneWithConfig(DefaultSceneConfig())
 }
 
-func RandomSceneWithConfig(config SceneConfig) *HittableList {
+func RandomSceneWithConfig(config SceneConfig) (*HittableList, *Camera) {
 	world := NewHittableList()
+
+	// =============================================================================
+	// MATERIALS
+	// =============================================================================
 	groundChecker := NewCheckerTextureFromColors(
 		0.32,
 		config.GroundColor,
 		Color{X: 0.9, Y: 0.9, Z: 0.9},
 	)
 	groundMaterial := NewLambertianTexture(groundChecker)
+
+	// =============================================================================
+	// GEOMETRY
+	// =============================================================================
 	world.Add(NewPlane(Point3{X: 0, Y: 0, Z: -1}, Vec3{X: 0, Y: 1, Z: 0}, groundMaterial))
 
 	for a := config.SphereGridBounds.MinA; a < config.SphereGridBounds.MaxA; a++ {
@@ -63,7 +69,22 @@ func RandomSceneWithConfig(config SceneConfig) *HittableList {
 	}
 	addLargeSpheres(world, config.LargeSpheresY)
 
-	return world
+	// =============================================================================
+	// CAMERA
+	// =============================================================================
+	camera := NewCameraBuilder().
+		SetResolution(1200, 16.0/9.0).
+		SetQuality(500, 50).
+		SetPosition(
+			Point3{X: 13, Y: 2, Z: 3},
+			Point3{X: 0, Y: 0, Z: 0},
+			Vec3{X: 0, Y: 1, Z: 0},
+		).
+		SetLens(20, 0.6, 10.0).
+		EnableSkyGradient(true).
+		Build()
+
+	return world, camera
 }
 func addRandomSphere(world *HittableList, center Point3, chooseMat float64, config SceneConfig) {
 	var sphereMaterial Material
@@ -112,128 +133,185 @@ func addLargeSpheres(world *HittableList, y float64) {
 	world.Add(NewSphere(Point3{X: 4, Y: y, Z: 0}, 1.0, material3))
 }
 
-func CheckeredSpheresScene() *HittableList {
+func CheckeredSpheresScene() (*HittableList, *Camera) {
 	world := NewHittableList()
 
+	// =============================================================================
+	// MATERIALS
+	// =============================================================================
 	checker := NewCheckerTextureFromColors(
 		0.32,
 		Color{X: 0.2, Y: 0.3, Z: 0.1},
 		Color{X: 0.9, Y: 0.9, Z: 0.9},
 	)
-
 	checkerMaterial := NewLambertianTexture(checker)
 
+	// =============================================================================
+	// GEOMETRY
+	// =============================================================================
 	// Bottom sphere (at y=-10)
 	world.Add(NewSphere(Point3{X: 0, Y: -10, Z: 0}, 10, checkerMaterial))
 
 	// Top sphere (at y=10)
 	world.Add(NewSphere(Point3{X: 0, Y: 10, Z: 0}, 10, checkerMaterial))
 
-	return world
+	// =============================================================================
+	// CAMERA
+	// =============================================================================
+	camera := NewCameraBuilder().
+		SetResolution(600, 16.0/9.0).
+		SetQuality(100, 50).
+		SetPosition(
+			Point3{X: 13, Y: 2, Z: 3},
+			Point3{X: 0, Y: 0, Z: 0},
+			Vec3{X: 0, Y: 1, Z: 0},
+		).
+		SetLens(20, 0, 10).
+		EnableSkyGradient(true).
+		Build()
+
+	return world, camera
 }
 
-func SimpleScene() *HittableList {
+func SimpleScene() (*HittableList, *Camera) {
 	world := NewHittableList()
 
+	// =============================================================================
+	// MATERIALS
+	// =============================================================================
 	materialGround := NewLambertian(Color{X: 0.8, Y: 0.8, Z: 0.0})
 	materialCenter := NewLambertian(Color{X: 0.1, Y: 0.2, Z: 0.5})
 	materialLeft := NewDielectric(1.5)
 	materialBubble := NewDielectric(1.0 / 1.5)
 	materialRight := NewMetal(Color{X: 0.8, Y: 0.6, Z: 0.2}, 0.0)
 
+	// =============================================================================
+	// GEOMETRY
+	// =============================================================================
 	world.Add(NewPlane(Point3{X: 0, Y: -0.5, Z: -1}, Vec3{X: 0, Y: 1, Z: 0}, materialGround))
 	world.Add(NewSphere(Point3{X: 0, Y: 0, Z: -1}, 0.5, materialCenter))
 	world.Add(NewSphere(Point3{X: -1, Y: 0, Z: -1}, 0.5, materialLeft))
 	world.Add(NewSphere(Point3{X: -1, Y: 0, Z: -1}, 0.4, materialBubble))
 	world.Add(NewSphere(Point3{X: 1, Y: 0, Z: -1}, 0.5, materialRight))
 
-	return world
+	// =============================================================================
+	// CAMERA
+	// =============================================================================
+	camera := NewCameraBuilder().
+		SetResolution(400, 16.0/9.0).
+		SetQuality(100, 50).
+		SetPosition(
+			Point3{X: 0, Y: 0, Z: 2},
+			Point3{X: 0, Y: 0, Z: -1},
+			Vec3{X: 0, Y: 1, Z: 0},
+		).
+		SetLens(90, 0, 10).
+		EnableSkyGradient(true).
+		Build()
+
+	return world, camera
 }
-func EarthScene() *HittableList {
+func EarthScene() (*HittableList, *Camera) {
 	world := NewHittableList()
 
+	// =============================================================================
+	// MATERIALS
+	// =============================================================================
 	earthTexture := NewImageTexture("earthmap.jpg")
 	earthSurface := NewLambertianTexture(earthTexture)
+
+	// =============================================================================
+	// GEOMETRY
+	// =============================================================================
 	globe := NewSphere(Point3{X: 0, Y: 0, Z: 0}, 2, earthSurface)
-
 	world.Add(globe)
-	return world
-}
-func EarthCamera() *Camera {
-	camera := NewCamera()
-	camera.AspectRatio = 16.0 / 9.0
-	camera.ImageWidth = 800
-	camera.SamplesPerPixel = 100
-	camera.MaxDepth = 50
-	camera.Vfov = 20
-	camera.LookFrom = Point3{X: 0, Y: 0, Z: 12}
-	camera.LookAt = Point3{X: 0, Y: 0, Z: 0}
-	camera.Vup = Vec3{X: 0, Y: 1, Z: 0}
-	camera.DefocusAngle = 0
-	camera.Initialize()
 
-	return camera
+	// =============================================================================
+	// CAMERA
+	// =============================================================================
+	camera := NewCameraBuilder().
+		SetResolution(800, 16.0/9.0).
+		SetQuality(100, 50).
+		SetPosition(
+			Point3{X: 0, Y: 0, Z: 12},
+			Point3{X: 0, Y: 0, Z: 0},
+			Vec3{X: 0, Y: 1, Z: 0},
+		).
+		SetLens(20, 0, 10).
+		EnableSkyGradient(true).
+		Build()
+
+	return world, camera
 }
-func PerlinSpheresScene() *HittableList {
+func PerlinSpheresScene() (*HittableList, *Camera) {
 	world := NewHittableList()
 
+	// =============================================================================
+	// MATERIALS
+	// =============================================================================
 	pertext := NewNoiseTexture(4.0)
+	perlMaterial := NewLambertianTexture(pertext)
 
-	world.Add(NewSphere(Point3{X: 0, Y: 2, Z: 0}, 2, NewLambertianTexture(pertext)))
+	// =============================================================================
+	// GEOMETRY
+	// =============================================================================
+	world.Add(NewSphere(Point3{X: 0, Y: 2, Z: 0}, 2, perlMaterial))
+	world.Add(NewPlane(Point3{X: 0, Y: 0, Z: -1}, Vec3{X: 0, Y: 1, Z: 0}, perlMaterial))
 
-	world.Add(NewPlane(Point3{X: 0, Y: 0, Z: -1}, Vec3{X: 0, Y: 1, Z: 0}, NewLambertianTexture(pertext)))
+	// =============================================================================
+	// CAMERA
+	// =============================================================================
+	camera := NewCameraBuilder().
+		SetResolution(600, 16.0/9.0).
+		SetQuality(100, 50).
+		SetPosition(
+			Point3{X: 13, Y: 2, Z: -10},
+			Point3{X: 0, Y: 1.5, Z: 0},
+			Vec3{X: 0, Y: 1, Z: 0},
+		).
+		SetLens(20, 0, 10).
+		EnableSkyGradient(true).
+		Build()
 
-	return world
+	return world, camera
 }
-
-// PerlinSpheresCamera returns the camera configuration for the Perlin spheres scene
-func PerlinSpheresCamera() *Camera {
-	camera := NewCamera()
-	camera.AspectRatio = 16.0 / 9.0
-	camera.ImageWidth = 600
-	camera.SamplesPerPixel = 100
-	camera.MaxDepth = 50
-	camera.Vfov = 20
-	camera.LookFrom = Point3{X: 13, Y: 2, Z: -10}
-	camera.LookAt = Point3{X: 0, Y: 1.5, Z: 0}
-	camera.Vup = Vec3{X: 0, Y: 1, Z: 0}
-	camera.DefocusAngle = 0
-	camera.Initialize()
-
-	return camera
-}
-func QuadsScene() *HittableList {
+func QuadsScene() (*HittableList, *Camera) {
 	world := NewHittableList()
 
+	// =============================================================================
+	// MATERIALS
+	// =============================================================================
 	leftRed := NewLambertian(Color{X: 1.0, Y: 0.2, Z: 0.2})
 	backGreen := NewLambertian(Color{X: 0.2, Y: 1.0, Z: 0.2})
 	rightBlue := NewLambertian(Color{X: 0.2, Y: 0.2, Z: 1.0})
 	upperOrange := NewLambertian(Color{X: 1.0, Y: 0.5, Z: 0.0})
 	lowerTeal := NewLambertian(Color{X: 0.2, Y: 0.8, Z: 0.8})
 
+	// =============================================================================
+	// GEOMETRY
+	// =============================================================================
 	world.Add(NewQuad(Point3{X: -3, Y: -2, Z: 5}, Vec3{X: 0, Y: 0, Z: -4}, Vec3{X: 0, Y: 4, Z: 0}, leftRed))
 	world.Add(NewQuad(Point3{X: -2, Y: -2, Z: 0}, Vec3{X: 4, Y: 0, Z: 0}, Vec3{X: 0, Y: 4, Z: 0}, backGreen))
 	world.Add(NewQuad(Point3{X: 3, Y: -2, Z: 1}, Vec3{X: 0, Y: 0, Z: 4}, Vec3{X: 0, Y: 4, Z: 0}, rightBlue))
 	world.Add(NewQuad(Point3{X: -2, Y: 3, Z: 1}, Vec3{X: 4, Y: 0, Z: 0}, Vec3{X: 0, Y: 0, Z: 4}, upperOrange))
 	world.Add(NewQuad(Point3{X: -2, Y: -3, Z: 5}, Vec3{X: 4, Y: 0, Z: 0}, Vec3{X: 0, Y: 0, Z: -4}, lowerTeal))
 
-	return world
-}
+	// =============================================================================
+	// CAMERA
+	// =============================================================================
+	camera := NewCameraBuilder().
+		SetResolution(400, 1.0).
+		SetQuality(100, 50).
+		SetPosition(
+			Point3{X: 0, Y: 0, Z: 9},
+			Point3{X: 0, Y: 0, Z: 0},
+			Vec3{X: 0, Y: 1, Z: 0},
+		).
+		SetLens(80, 0, 10).
+		EnableSkyGradient(true).
+		Build()
 
-func QuadsCamera() *Camera {
-	camera := NewCamera()
-	camera.AspectRatio = 1.0
-	camera.ImageWidth = 400
-	camera.SamplesPerPixel = 100
-	camera.MaxDepth = 50
-	camera.Vfov = 80
-	camera.LookFrom = Point3{X: 0, Y: 0, Z: 9}
-	camera.LookAt = Point3{X: 0, Y: 0, Z: 0}
-	camera.Vup = Vec3{X: 0, Y: 1, Z: 0}
-	camera.DefocusAngle = 0
-	camera.Initialize()
-
-	return camera
+	return world, camera
 }
 
 // PrimitivesScene demonstrates all primitive types: sphere, circle, quad (as cube), triangle (as pyramid), and infinite plane
