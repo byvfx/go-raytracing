@@ -44,7 +44,7 @@ Renders to window with progressive scanline display. Saves final image as `image
 **Builder API:**
 
 ```go
-camera := rt.NewCamera().
+camera := rt.NewCameraBuilder().
     SetResolution(800, 16.0/9.0).
     SetQuality(100, 50).
     SetPosition(
@@ -52,7 +52,9 @@ camera := rt.NewCamera().
         rt.Point3{X: 0, Y: 0, Z: 0},
         rt.Vec3{X: 0, Y: 1, Z: 0},
     ).
-    SetLens(20, 0.6, 10.0)
+    SetLens(20, 0.6, 10.0).
+    AddLight(areaLight).
+    Build()
 ```
 
 ### Materials
@@ -60,6 +62,8 @@ camera := rt.NewCamera().
 - **Lambertian** - Diffuse/matte surfaces
 - **Metal** - Reflective surfaces w/ adjustable fuzz
 - **Dielectric** - Glass/transparent materials w/ refraction, Fresnel effects (Schlick approximation), hollow sphere support
+- **DiffuseLight** - Emissive surfaces for area lights
+- **DiffuseLight** - Emissive surfaces for area lights
 
 ### Textures
 
@@ -88,8 +92,24 @@ bvh := rt.NewBVHNodeFromList(world)
 - **Quad** - Axis-aligned quadrilaterals
 - **Triangle** - Basic triangle primitive
 - **Circle/Disk** - Flat circular surfaces
+- **Box** - Compound primitive (6 quads)
+- **Pyramid** - Compound primitive (4 triangles + base)
 - **BVHNode** - Acceleration structure node
 - All objects have axis-aligned bounding boxes
+
+### Transforms
+
+- **Translate** - Position offset
+- **RotateX/Y/Z** - Axis-aligned rotation
+- **Scale** - Uniform and non-uniform scaling
+- **Transform builder** - Chainable API with SRT ordering (Scale-Rotate-Translate)
+
+### Lighting
+
+- **Next Event Estimation (NEE)** - Direct light sampling for reduced noise
+- **Area lights** - Quad-based emissive surfaces
+- **Light registration** - Camera tracks lights for importance sampling
+- **Shadow rays** - Visibility testing with proper PDF weighting
 
 ### Scenes
 
@@ -124,8 +144,8 @@ ebiten.RunGame(renderer)
 ```
 
 ```go
-// Camera Bulilder API
-camera := rt.NewCamera().
+// Camera Builder API
+camera := rt.NewCameraBuilder().
     SetResolution(800, 16.0/9.0).
     SetQuality(100, 50).
     SetPosition(
@@ -133,7 +153,9 @@ camera := rt.NewCamera().
         rt.Point3{X: 0, Y: 0, Z: 0},
         rt.Vec3{X: 0, Y: 1, Z: 0},
     ).
-    SetLens(20, 0.6, 10.0)  
+    SetLens(20, 0.6, 10.0).
+    AddLight(areaLight).
+    Build()
 ```
 
 ```go
@@ -169,9 +191,9 @@ world := rt.RandomSceneWithConfig(config)
 - [x] Texture system (solid, checker, image)
 - [x] Perlin noise
 - [x] Quadrilaterals
-- [x] Lights
-- [x] Cornel Box scene
-- [ ] Instances (translation/rotation)
+- [x] Lights (emissive materials + NEE)
+- [x] Cornell Box scene
+- [x] Instances (translation/rotation/scale)
 - [ ] Volumes (fog/smoke)
 
 **Additional:**
@@ -179,9 +201,17 @@ world := rt.RandomSceneWithConfig(config)
 - [x] Progressive rendering w/ Ebiten
 - [x] Infinite Plane primitive
 - [x] Scene configuration system
-- [x] Builder pattern API
-- [x] Triangles primitive
+- [x] Builder pattern API for camera
+- [x] Triangle primitive
 - [x] Circle/Disk primitive
+- [x] Compound primitives (Box, Pyramid)
+- [x] Transform system with SRT ordering
+- [x] Next Event Estimation (NEE) for direct lighting
+- [x] Preset scenes with cameras
+- [x] Circle/Disk primitive
+- [x] Compound primitives (Box, Pyramid)
+- [x] Transform system with SRT ordering
+- [x] Next Event Estimation (NEE) for direct lighting
 - [x] Preset scenes with cameras
 
 ## Resources
