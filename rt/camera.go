@@ -406,7 +406,8 @@ func (c *Camera) RayColor(r Ray, depth int, world Hittable) Color {
 
 	// For scattered rays, add direct light sampling (NEE)
 	directLight := Color{X: 0, Y: 0, Z: 0}
-	if len(c.Lights) > 0 {
+
+	if _, isLambertian := rec.Mat.(*Lambertian); isLambertian && len(c.Lights) > 0 {
 		lightIdx := int(RandomDouble() * float64(len(c.Lights)))
 		if lightIdx >= len(c.Lights) {
 			lightIdx = len(c.Lights) - 1
@@ -418,7 +419,6 @@ func (c *Camera) RayColor(r Ray, depth int, world Hittable) Color {
 	colorFromScatter := attenuation.Mult(c.RayColor(scattered, depth-1, world))
 
 	// Combine: direct lighting + indirect lighting
-	// Note: We don't add colorFromEmission here because this surface scatters (not a light)
 	return directLight.Mult(attenuation).Add(colorFromScatter)
 }
 
@@ -499,7 +499,7 @@ func (c *Camera) sampleLight(hitPoint Point3, hitNormal Vec3, world Hittable, li
 	contribution = contribution.Scale(float64(len(c.Lights)))
 
 	// CLAMP to prevent fireflies - adjust this threshold as needed
-	maxComponent := 20.0
+	maxComponent := 20000000.0
 	contribution.X = math.Min(contribution.X, maxComponent)
 	contribution.Y = math.Min(contribution.Y, maxComponent)
 	contribution.Z = math.Min(contribution.Z, maxComponent)

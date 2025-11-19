@@ -325,7 +325,7 @@ func PrimitivesScene() (*HittableList, *Camera) {
 	greenMat := NewLambertian(Color{X: 0.1, Y: 0.8, Z: 0.1})
 	blueMat := NewLambertian(Color{X: 0.1, Y: 0.1, Z: 0.8})
 	metalMat := NewMetal(Color{X: 0.7, Y: 0.7, Z: 0.7}, 0.1)
-	lightMat := NewDiffuseLight(NewSolidColor(Color{X: 5, Y: 5, Z: 5}))
+	lightMat := NewDiffuseLight(NewSolidColor(Color{X: 1, Y: 1, Z: 1}))
 
 	checkerMat := NewLambertianTexture(NewCheckerTextureFromColors(1.0,
 		Color{X: 0.0, Y: 0.0, Z: 0.0},
@@ -390,7 +390,7 @@ func PrimitivesScene() (*HittableList, *Camera) {
 
 	camera := NewCameraBuilder().
 		SetResolution(800, 16.0/9.0).
-		SetQuality(500, 50).
+		SetQuality(50, 50).
 		SetPosition(
 			Point3{X: 0, Y: 2, Z: 10},
 			Point3{X: 0, Y: 0, Z: 0},
@@ -398,6 +398,7 @@ func PrimitivesScene() (*HittableList, *Camera) {
 		).
 		SetLens(45, 0, 10).
 		SetBackground(Color{0, 0, 0}).
+		EnableSkyGradient(false).
 		AddLight(areaLight).
 		Build()
 

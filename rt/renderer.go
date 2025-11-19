@@ -77,91 +77,75 @@ func (r *ProgressiveRenderer) drawRenderSettings(screen *ebiten.Image) {
 		elapsed = time.Since(r.renderStart)
 	}
 
-	// Position text in lower left corner
-	x := 10
-	y := r.camera.ImageHeight - 95
-	lineHeight := 12
+	// Draw black bar at bottom (30 pixels tall)
+	barHeight := 30
+	barY := r.camera.ImageHeight - barHeight
+	bgColor := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 
-	// Create semi-transparent background for better readability
-	bgColor := color.RGBA{R: 0, G: 0, B: 0, A: 50}
-	bgRect := image.Rect(x-5, y-5, x+150, y+85)
-	for py := bgRect.Min.Y; py < bgRect.Max.Y; py++ {
-		for px := bgRect.Min.X; px < bgRect.Max.X; px++ {
-			if px >= 0 && px < r.camera.ImageWidth && py >= 0 && py < r.camera.ImageHeight {
-				r.framebuffer.Set(px, py, bgColor)
-			}
+	for py := barY; py < r.camera.ImageHeight; py++ {
+		for px := 0; px < r.camera.ImageWidth; px++ {
+			r.framebuffer.Set(px, py, bgColor)
 		}
 	}
-	// Display render settings
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Resolution: %dx%d", r.camera.ImageWidth, r.camera.ImageHeight), x, y)
-	y += lineHeight
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Samples/Pixel: %d", r.camera.SamplesPerPixel), x, y)
-	y += lineHeight
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Max Depth: %d", r.camera.MaxDepth), x, y)
-	y += lineHeight
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Progress: %.1f%%", progress), x, y)
-	y += lineHeight
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Render Time: %s", FormatDuration(elapsed)), x, y)
-	y += lineHeight
 
+	// Display stats in a single line across the bar
+	textY := barY + 10 // Center text vertically in the 30px bar
+	spacing := 15
+
+	var status string
 	if r.completed {
-		ebitenutil.DebugPrintAt(screen, "Status: COMPLETED", x, y)
+		status = "COMPLETED"
 	} else {
-		ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Scanline: %d/%d", r.currentRow, r.camera.ImageHeight), x, y)
+		status = fmt.Sprintf("Scanline: %d/%d", r.currentRow, r.camera.ImageHeight)
 	}
 
+	statsText := fmt.Sprintf("%dx%d | SPP:%d | Depth:%d | %.1f%% | %s | %s",
+		r.camera.ImageWidth,
+		r.camera.ImageHeight,
+		r.camera.SamplesPerPixel,
+		r.camera.MaxDepth,
+		progress,
+		FormatDuration(elapsed),
+		status,
+	)
+
+	ebitenutil.DebugPrintAt(screen, statsText, spacing, textY)
 }
 
 // drawStatsToFramebuffer draws the render statistics directly onto the framebuffer for saving
 func (r *ProgressiveRenderer) drawStatsToFramebuffer() {
 	elapsed := r.renderEnd.Sub(r.renderStart)
 
-	x := 10
-	y := r.camera.ImageHeight - 95
-	lineHeight := 12
+	// Draw black bar at bottom (30 pixels tall)
+	barHeight := 30
+	barY := r.camera.ImageHeight - barHeight
+	bgColor := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 
-	// Draw semi-transparent background
-	bgColor := color.RGBA{R: 0, G: 0, B: 0, A: 50}
-	bgRect := image.Rect(x-5, y-5, x+150, y+85)
-	for py := bgRect.Min.Y; py < bgRect.Max.Y; py++ {
-		for px := bgRect.Min.X; px < bgRect.Max.X; px++ {
-			if px >= 0 && px < r.camera.ImageWidth && py >= 0 && py < r.camera.ImageHeight {
-				// Blend background color with existing pixel
-				existing := r.framebuffer.At(px, py)
-				er, eg, eb, _ := existing.RGBA()
-				// Simple alpha blending
-				a := float64(bgColor.A) / 255.0
-				finalR := uint8(float64(bgColor.R)*a + float64(er>>8)*(1-a))
-				finalG := uint8(float64(bgColor.G)*a + float64(eg>>8)*(1-a))
-				finalB := uint8(float64(bgColor.B)*a + float64(eb>>8)*(1-a))
-				r.framebuffer.Set(px, py, color.RGBA{R: finalR, G: finalG, B: finalB, A: 255})
-			}
+	for py := barY; py < r.camera.ImageHeight; py++ {
+		for px := 0; px < r.camera.ImageWidth; px++ {
+			r.framebuffer.Set(px, py, bgColor)
 		}
 	}
 
-	// Prepare text lines
+	// Prepare stats text
 	textColor := color.RGBA{R: 255, G: 255, B: 255, A: 255}
 	face := text.NewGoXFace(basicfont.Face7x13)
 
-	lines := []string{
-		fmt.Sprintf("Resolution: %dx%d", r.camera.ImageWidth, r.camera.ImageHeight),
-		fmt.Sprintf("Samples/Pixel: %d", r.camera.SamplesPerPixel),
-		fmt.Sprintf("Max Depth: %d", r.camera.MaxDepth),
-		fmt.Sprintf("Progress: 100.0%%"),
-		fmt.Sprintf("Render Time: %s", FormatDuration(elapsed)),
-		"Status: COMPLETED",
-	}
+	statsText := fmt.Sprintf("%dx%d | SPP:%d | Depth:%d | 100.0%% | %s | COMPLETED",
+		r.camera.ImageWidth,
+		r.camera.ImageHeight,
+		r.camera.SamplesPerPixel,
+		r.camera.MaxDepth,
+		FormatDuration(elapsed),
+	)
 
 	// Create temporary ebiten.Image from framebuffer
 	tempImg := ebiten.NewImageFromImage(r.framebuffer)
 
-	fontHeight := 13
-	for i, line := range lines {
-		opts := &text.DrawOptions{}
-		opts.GeoM.Translate(float64(x), float64(y+i*lineHeight+fontHeight-2))
-		opts.ColorScale.ScaleWithColor(textColor)
-		text.Draw(tempImg, line, face, opts)
-	}
+	opts := &text.DrawOptions{}
+	opts.GeoM.Translate(15, float64(barY+20)) // Position text in the bar
+	opts.ColorScale.ScaleWithColor(textColor)
+	text.Draw(tempImg, statsText, face, opts)
 
 	// Copy the result back to framebuffer
 	tempImg.ReadPixels(r.framebuffer.Pix)
