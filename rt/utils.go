@@ -73,16 +73,6 @@ func PrintRenderStats(elapsed time.Duration, width, height int) {
 	fmt.Println("========================================")
 }
 
-func Clamp(x, min, max float64) float64 {
-	if x < min {
-		return min
-	}
-	if x > max {
-		return max
-	}
-	return x
-}
-
 // LinearToGamma converts linear color to gamma-corrected color
 func LinearToGamma(linear float64) float64 {
 	if linear > 0 {

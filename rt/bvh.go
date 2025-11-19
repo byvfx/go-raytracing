@@ -91,16 +91,3 @@ func boxCompare(axis int) func(a, b Hittable) bool {
 		return aInterval.Min < bInterval.Min
 	}
 }
-
-// Helper comparison functions for each axis
-func boxXCompare(a, b Hittable) bool {
-	return boxCompare(0)(a, b)
-}
-
-func boxYCompare(a, b Hittable) bool {
-	return boxCompare(1)(a, b)
-}
-
-func boxZCompare(a, b Hittable) bool {
-	return boxCompare(2)(a, b)
-}

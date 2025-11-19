@@ -1,5 +1,3 @@
-// TODO add option for Depth of Field, so we can set a global flag that will enable/disable defocus blur
-// TODO add independent samples for area lights vs camera samples
 package rt
 
 import (
@@ -430,13 +428,14 @@ func (c *Camera) SkyGradient(r Ray) Color {
 	return white.Scale(1.0 - a).Add(blue.Scale(a))
 }
 
+// Background color presets for convenience with SetBackground()
 var (
-	BackgroundSkyColor = Color{X: 0.5, Y: 0.7, Z: 1.0}
-	BackgroundBlack    = Color{X: 0.0, Y: 0.0, Z: 0.0}
-	BackgroundWhite    = Color{X: 1.0, Y: 1.0, Z: 1.0}
-	BackgroundGray     = Color{X: 0.5, Y: 0.5, Z: 0.5}
-	BackgroundSunset   = Color{X: 1.0, Y: 0.5, Z: 0.3}
-	BackgroundNight    = Color{X: 0.05, Y: 0.05, Z: 0.2}
+	BackgroundSkyColor = Color{X: 0.5, Y: 0.7, Z: 1.0}   // Light blue sky
+	BackgroundBlack    = Color{X: 0.0, Y: 0.0, Z: 0.0}   // Pure black (studio lighting)
+	BackgroundWhite    = Color{X: 1.0, Y: 1.0, Z: 1.0}   // Pure white
+	BackgroundGray     = Color{X: 0.5, Y: 0.5, Z: 0.5}   // Neutral gray
+	BackgroundSunset   = Color{X: 1.0, Y: 0.5, Z: 0.3}   // Warm orange sunset
+	BackgroundNight    = Color{X: 0.05, Y: 0.05, Z: 0.2} // Dark blue night sky
 )
 
 // In camera.go - replace the sampleLight method
@@ -498,8 +497,8 @@ func (c *Camera) sampleLight(hitPoint Point3, hitNormal Vec3, world Hittable, li
 	// Multiply by number of lights (probability of selecting this light is 1/numLights)
 	contribution = contribution.Scale(float64(len(c.Lights)))
 
-	// CLAMP to prevent fireflies - adjust this threshold as needed
-	maxComponent := 20000000.0
+	// Clamp to prevent fireflies from extreme samples (grazing angles, very close distances)
+	maxComponent := 20.0
 	contribution.X = math.Min(contribution.X, maxComponent)
 	contribution.Y = math.Min(contribution.Y, maxComponent)
 	contribution.Z = math.Min(contribution.Z, maxComponent)
@@ -545,9 +544,9 @@ func (c *Camera) writeColor(img *image.RGBA, x, y int, pixelColor Color) {
 	b := pixelColor.Z * scale
 
 	// Apply gamma correction (gamma = 2.0)
-	r = linearToGamma(r)
-	g = linearToGamma(g)
-	b = linearToGamma(b)
+	r = LinearToGamma(r)
+	g = LinearToGamma(g)
+	b = LinearToGamma(b)
 
 	// Clamp to [0, 1] and convert to [0, 255]
 	intensity := NewInterval(0.0, 0.999)
@@ -556,13 +555,6 @@ func (c *Camera) writeColor(img *image.RGBA, x, y int, pixelColor Color) {
 	bByte := uint8(256 * intensity.Clamp(b))
 
 	img.SetRGBA(x, y, color.RGBA{R: rByte, G: gByte, B: bByte, A: 255})
-}
-
-func linearToGamma(linearComponent float64) float64 {
-	if linearComponent > 0 {
-		return math.Sqrt(linearComponent)
-	}
-	return 0
 }
 
 func (c *Camera) saveImage(img *image.RGBA, filename string) {

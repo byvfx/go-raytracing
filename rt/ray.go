@@ -10,10 +10,6 @@ func NewRay(origin Point3, direction Vec3, time float64) Ray {
 	return Ray{orig: origin, dir: direction, tm: time}
 }
 
-func NewRayAtTime(origin, Point3, direction Vec3) Ray {
-	return NewRay(origin, direction, 0)
-}
-
 func (r Ray) Origin() Point3 {
 	return r.orig
 }

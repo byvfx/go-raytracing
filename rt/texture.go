@@ -79,7 +79,6 @@ func (c *CheckerTexture) Value(u, v float64, p Point3) Color {
 // TODO add option for turbulence
 // TODO add different noise types and turbulences
 func (tex *NoiseTexture) Value(u, v float64, p Point3) Color {
-	//noiseValue := 0.5 * (1.0 + tex.noise.Noise(p.Scale(tex.scale)))
 	s := tex.scale*p.Z + 10.0*tex.noise.Turb(p.Scale(tex.scale), 7)
 	turbValue := 0.5 * (1.0 + math.Sin(s))
 	return Color{X: 1, Y: 1, Z: 1}.Scale(turbValue)

@@ -1,5 +1,3 @@
-//TODO save the render stats to a thinner bar at the bottom of the image instead of a large block
-
 package rt
 
 import (
@@ -166,10 +164,12 @@ func (r *ProgressiveRenderer) renderScanline(j int) {
 		scale := 1.0 / float64(r.camera.SamplesPerPixel)
 		pixelColor = pixelColor.Scale(scale)
 
+		// Clamp using Interval
+		intensity := NewInterval(0.0, 0.999)
 		r.framebuffer.Set(i, j, color.RGBA{
-			R: uint8(256 * Clamp(LinearToGamma(pixelColor.X), 0, 0.999)),
-			G: uint8(256 * Clamp(LinearToGamma(pixelColor.Y), 0, 0.999)),
-			B: uint8(256 * Clamp(LinearToGamma(pixelColor.Z), 0, 0.999)),
+			R: uint8(256 * intensity.Clamp(LinearToGamma(pixelColor.X))),
+			G: uint8(256 * intensity.Clamp(LinearToGamma(pixelColor.Y))),
+			B: uint8(256 * intensity.Clamp(LinearToGamma(pixelColor.Z))),
 			A: 255,
 		})
 	}
