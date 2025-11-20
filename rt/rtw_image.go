@@ -3,16 +3,17 @@ package rt
 import (
 	"fmt"
 	"image"
-	_ "image/jpeg" // Register JPEG format
-	_ "image/png"  // Register PNG format
+	_ "image/jpeg"
+	_ "image/png"
 	"os"
 	"path/filepath"
+	"slices"
 )
 
 // RtwImage manages loading and accessing image data for textures
 // C++: class rtw_image
 type RtwImage struct {
-	data             []Color // Linear floating point pixel data [0.0, 1.0]
+	data             []Color
 	imageWidth       int
 	imageHeight      int
 	bytesPerPixel    int
@@ -26,12 +27,9 @@ func NewRtwImage() *RtwImage {
 	}
 }
 
-// NewRtwImageFromFile loads an image from a file
-// C++: rtw_image(const char* image_filename)
 func NewRtwImageFromFile(filename string) *RtwImage {
 	img := NewRtwImage()
 
-	// Hunt for the image file in some likely locations
 	imagedir := os.Getenv("RTW_IMAGES")
 
 	searchPaths := []string{}
@@ -51,10 +49,8 @@ func NewRtwImageFromFile(filename string) *RtwImage {
 		filepath.Join("..", "..", "..", "..", "..", "..", "images", filename),
 	)
 
-	for _, path := range searchPaths {
-		if img.Load(path) {
-			return img
-		}
+	if slices.ContainsFunc(searchPaths, img.Load) {
+		return img
 	}
 
 	fmt.Fprintf(os.Stderr, "ERROR: Could not load image file '%s'.\n", filename)
@@ -62,7 +58,6 @@ func NewRtwImageFromFile(filename string) *RtwImage {
 }
 
 // Load loads the linear (gamma=1) image data from the given file
-// C++: bool load(const std::string& filename)
 func (img *RtwImage) Load(filename string) bool {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -93,9 +88,9 @@ func (img *RtwImage) Load(filename string) bool {
 			// Also apply inverse gamma correction (assume sRGB input, gamma ≈ 2.2)
 			idx := y*img.imageWidth + x
 			img.data[idx] = Color{
-				X: linearToGamma(float64(r) / 65535.0),
-				Y: linearToGamma(float64(g) / 65535.0),
-				Z: linearToGamma(float64(b) / 65535.0),
+				X: LinearToGamma(float64(r) / 65535.0),
+				Y: LinearToGamma(float64(g) / 65535.0),
+				Z: LinearToGamma(float64(b) / 65535.0),
 			}
 		}
 	}
@@ -103,8 +98,6 @@ func (img *RtwImage) Load(filename string) bool {
 	return true
 }
 
-// Width returns the image width
-// C++: int width() const
 func (img *RtwImage) Width() int {
 	if img.data == nil {
 		return 0
@@ -112,8 +105,6 @@ func (img *RtwImage) Width() int {
 	return img.imageWidth
 }
 
-// Height returns the image height
-// C++: int height() const
 func (img *RtwImage) Height() int {
 	if img.data == nil {
 		return 0
@@ -121,8 +112,6 @@ func (img *RtwImage) Height() int {
 	return img.imageHeight
 }
 
-// PixelData returns the RGB color at pixel (x, y)
-// C++: const unsigned char* pixel_data(int x, int y) const
 func (img *RtwImage) PixelData(x, y int) Color {
 	// Return magenta if no image data
 	if img.data == nil {
@@ -137,7 +126,6 @@ func (img *RtwImage) PixelData(x, y int) Color {
 	return img.data[idx]
 }
 
-// clamp returns the value clamped to the range [low, high)
 func clamp(x, low, high int) int {
 	if x < low {
 		return low
