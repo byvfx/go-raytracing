@@ -414,7 +414,7 @@ func CornellBoxScene() (*HittableList, *Camera) {
 	whiteMat := NewLambertian(Color{X: 0.73, Y: 0.73, Z: 0.73})
 	redMat := NewLambertian(Color{X: 0.65, Y: 0.05, Z: 0.05})
 	greenMat := NewLambertian(Color{X: 0.12, Y: 0.45, Z: 0.15})
-	lightMat := NewDiffuseLight(NewSolidColor(Color{X: 1, Y: 1, Z: 1}))
+	lightMat := NewDiffuseLight(NewSolidColor(Color{X: 3, Y: 3, Z: 3}))
 
 	areaLight := NewQuad(
 		Point3{X: 213, Y: 554, Z: 227},
@@ -489,7 +489,7 @@ func CornellBoxScene() (*HittableList, *Camera) {
 
 	camera := NewCameraBuilder().
 		SetResolution(600, 1.0).
-		SetQuality(150, 10).
+		SetQuality(250, 10).
 		SetPosition(
 			Point3{X: 278, Y: 278, Z: -800},
 			Point3{X: 278, Y: 278, Z: 0},
