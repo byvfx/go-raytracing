@@ -7,12 +7,9 @@ import (
 	_ "image/png"
 	"os"
 	"path/filepath"
-	"slices"
 )
 
-// RtwImage manages loading and accessing image data for textures
-// C++: class rtw_image
-type RtwImage struct {
+type ImageLoader struct {
 	data             []Color
 	imageWidth       int
 	imageHeight      int
@@ -20,45 +17,27 @@ type RtwImage struct {
 	bytesPerScanline int
 }
 
-// NewRtwImage creates an empty image
-func NewRtwImage() *RtwImage {
-	return &RtwImage{
+// NewImageLoader creates an empty image
+func NewImageLoader() *ImageLoader {
+	return &ImageLoader{
 		bytesPerPixel: 3,
 	}
 }
 
-func NewRtwImageFromFile(filename string) *RtwImage {
-	img := NewRtwImage()
+func NewImageLoaderFromFile(filename string) *ImageLoader {
+	img := NewImageLoader()
 
-	imagedir := os.Getenv("RTW_IMAGES")
-
-	searchPaths := []string{}
-
-	if imagedir != "" {
-		searchPaths = append(searchPaths, filepath.Join(imagedir, filename))
-	}
-
-	searchPaths = append(searchPaths,
-		filename,
-		filepath.Join("images", filename),
-		filepath.Join("..", "images", filename),
-		filepath.Join("..", "..", "images", filename),
-		filepath.Join("..", "..", "..", "images", filename),
-		filepath.Join("..", "..", "..", "..", "images", filename),
-		filepath.Join("..", "..", "..", "..", "..", "images", filename),
-		filepath.Join("..", "..", "..", "..", "..", "..", "images", filename),
-	)
-
-	if slices.ContainsFunc(searchPaths, img.Load) {
+	path, err := FindAsset(filename, "images")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: Could not resolve image file path '%s'.\n", filename)
 		return img
 	}
-
-	fmt.Fprintf(os.Stderr, "ERROR: Could not load image file '%s'.\n", filename)
+	img.Load(path)
 	return img
 }
 
 // Load loads the linear (gamma=1) image data from the given file
-func (img *RtwImage) Load(filename string) bool {
+func (img *ImageLoader) Load(filename string) bool {
 	file, err := os.Open(filename)
 	if err != nil {
 		return false
@@ -83,9 +62,6 @@ func (img *RtwImage) Load(filename string) bool {
 	for y := 0; y < img.imageHeight; y++ {
 		for x := 0; x < img.imageWidth; x++ {
 			r, g, b, _ := decoded.At(x+bounds.Min.X, y+bounds.Min.Y).RGBA()
-
-			// RGBA() returns values in range [0, 65535], convert to [0.0, 1.0]
-			// Also apply inverse gamma correction (assume sRGB input, gamma ≈ 2.2)
 			idx := y*img.imageWidth + x
 			img.data[idx] = Color{
 				X: LinearToGamma(float64(r) / 65535.0),
@@ -98,21 +74,21 @@ func (img *RtwImage) Load(filename string) bool {
 	return true
 }
 
-func (img *RtwImage) Width() int {
+func (img *ImageLoader) Width() int {
 	if img.data == nil {
 		return 0
 	}
 	return img.imageWidth
 }
 
-func (img *RtwImage) Height() int {
+func (img *ImageLoader) Height() int {
 	if img.data == nil {
 		return 0
 	}
 	return img.imageHeight
 }
 
-func (img *RtwImage) PixelData(x, y int) Color {
+func (img *ImageLoader) PixelData(x, y int) Color {
 	// Return magenta if no image data
 	if img.data == nil {
 		return Color{X: 1.0, Y: 0.0, Z: 1.0}
@@ -126,6 +102,7 @@ func (img *RtwImage) PixelData(x, y int) Color {
 	return img.data[idx]
 }
 
+// TODO do i need this clamp function i think i can just use math.Min math.Max
 func clamp(x, low, high int) int {
 	if x < low {
 		return low
@@ -134,4 +111,20 @@ func clamp(x, low, high int) int {
 		return x
 	}
 	return high - 1
+}
+
+func FindAsset(filename string, assetType string) (string, error) {
+	searchPaths := []string{
+		filename,
+		filepath.Join(assetType, filename),
+		filepath.Join("assets", assetType, filename),
+		filepath.Join("..", assetType, filename),
+		filepath.Join("..", "assets", assetType, filename),
+	}
+	for _, path := range searchPaths {
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+	return "", fmt.Errorf("asset file '%s' not found in any search paths", filename)
 }

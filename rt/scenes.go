@@ -502,3 +502,45 @@ func CornellBoxScene() (*HittableList, *Camera) {
 
 	return world, camera
 }
+
+func GlossyMetalTest() (*HittableList, *Camera) {
+	world := NewHittableList()
+
+	// Ground
+	groundMat := NewLambertian(Color{X: 0.5, Y: 0.5, Z: 0.5})
+	world.Add(NewPlane(Point3{X: 0, Y: 0, Z: 0}, Vec3{X: 0, Y: 1, Z: 0}, groundMat))
+
+	// Three spheres with increasing glossiness
+	smoothMetal := NewMetal(Color{X: 0.8, Y: 0.6, Z: 0.2}, 0.0) // Mirror
+	mediumMetal := NewMetal(Color{X: 0.8, Y: 0.6, Z: 0.2}, 0.2) // Glossy (MIS helps!)
+	roughMetal := NewMetal(Color{X: 0.8, Y: 0.6, Z: 0.2}, 0.5)  // Very glossy (MIS helps a lot!)
+
+	world.Add(NewSphere(Point3{X: -2.5, Y: 1, Z: 0}, 1.0, smoothMetal))
+	world.Add(NewSphere(Point3{X: 0, Y: 1, Z: 0}, 1.0, mediumMetal))
+	world.Add(NewSphere(Point3{X: 2.5, Y: 1, Z: 0}, 1.0, roughMetal))
+
+	// Area light
+	lightMat := NewDiffuseLightColor(Color{X: 4, Y: 4, Z: 4})
+	areaLight := NewQuad(
+		Point3{X: -2, Y: 5, Z: -2},
+		Vec3{X: 4, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 4},
+		lightMat,
+	)
+	world.Add(areaLight)
+
+	camera := NewCameraBuilder().
+		SetResolution(800, 16.0/9.0).
+		SetQuality(100, 50).
+		SetPosition(
+			Point3{X: 0, Y: 2, Z: 10},
+			Point3{X: 0, Y: 1, Z: 0},
+			Vec3{X: 0, Y: 1, Z: 0},
+		).
+		SetLens(40, 0, 10).
+		SetBackground(BackgroundBlack).
+		AddLight(areaLight).
+		Build()
+
+	return world, camera
+}

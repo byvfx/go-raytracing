@@ -3,17 +3,15 @@ package rt
 import "math"
 
 // =============================================================================
-// TRANSFORM BUILDER (DCC-friendly SRT interface)
+// TRANSFORM BUILDER
 // =============================================================================
 
-// Transform represents a full SRT (Scale-Rotate-Translate) transformation
 type Transform struct {
-	Scale    Vec3 // Non-uniform scale
-	Rotation Vec3 // Euler angles in degrees (X, Y, Z)
-	Position Vec3 // Translation/Position
+	Scale    Vec3
+	Rotation Vec3
+	Position Vec3
 }
 
-// NewTransform creates an identity transform
 func NewTransform() *Transform {
 	return &Transform{
 		Scale:    Vec3{X: 1, Y: 1, Z: 1},
@@ -22,17 +20,14 @@ func NewTransform() *Transform {
 	}
 }
 
-// Apply applies the SRT transform chain to a hittable object
 // Order: Scale -> Rotate (X->Y->Z) -> Translate
 func (t *Transform) Apply(obj Hittable) Hittable {
 	result := obj
 
-	// 1. Scale (if not identity)
 	if t.Scale.X != 1.0 || t.Scale.Y != 1.0 || t.Scale.Z != 1.0 {
 		result = NewScale(result, t.Scale)
 	}
 
-	// 2. Rotate (apply in XYZ order - standard Euler angles)
 	if t.Rotation.X != 0 {
 		result = Rx(result, t.Rotation.X)
 	}
@@ -43,7 +38,6 @@ func (t *Transform) Apply(obj Hittable) Hittable {
 		result = Rz(result, t.Rotation.Z)
 	}
 
-	// 3. Translate
 	if t.Position.X != 0 || t.Position.Y != 0 || t.Position.Z != 0 {
 		result = NewTranslate(result, t.Position)
 	}
@@ -51,7 +45,6 @@ func (t *Transform) Apply(obj Hittable) Hittable {
 	return result
 }
 
-// Builder methods for fluent interface
 func (t *Transform) SetScale(s Vec3) *Transform {
 	t.Scale = s
 	return t

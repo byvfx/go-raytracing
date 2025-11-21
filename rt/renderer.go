@@ -1,3 +1,4 @@
+// TODO see why text is getting cut off at bottom of saved image
 package rt
 
 import (
@@ -129,7 +130,7 @@ func (r *ProgressiveRenderer) drawStatsToFramebuffer() {
 	textColor := color.RGBA{R: 255, G: 255, B: 255, A: 255}
 	face := text.NewGoXFace(basicfont.Face7x13)
 
-	statsText := fmt.Sprintf("%dx%d | SPP:%d | Depth:%d | 100.0%% | %s | COMPLETED",
+	statsText := fmt.Sprintf("%dx%d | SPP:%d | Depth:%d | 100.0%% | %s",
 		r.camera.ImageWidth,
 		r.camera.ImageHeight,
 		r.camera.SamplesPerPixel,

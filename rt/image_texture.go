@@ -3,19 +3,19 @@ package rt
 // ImageTexture uses an image as a texture
 // C++: class image_texture : public texture
 type ImageTexture struct {
-	image *RtwImage
+	image *ImageLoader
 }
 
 // NewImageTexture creates a texture from an image file
 // C++: image_texture(const char* filename) : image(filename) {}
 func NewImageTexture(filename string) *ImageTexture {
 	return &ImageTexture{
-		image: NewRtwImageFromFile(filename),
+		image: NewImageLoaderFromFile(filename),
 	}
 }
 
-// NewImageTextureFromImage creates a texture from an RtwImage
-func NewImageTextureFromImage(image *RtwImage) *ImageTexture {
+// NewImageTextureFromImage creates a texture from an ImageLoader
+func NewImageTextureFromImage(image *ImageLoader) *ImageTexture {
 	return &ImageTexture{
 		image: image,
 	}
