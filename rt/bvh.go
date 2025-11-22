@@ -4,6 +4,10 @@ import (
 	"sort"
 )
 
+// BVHNode represents a node in a Bounding Volume Hierarchy tree
+// RUST PORT NOTE: Use Box<dyn Hittable> for left/right
+// or consider enum-based dispatch for better performance:
+// enum BVHNode { Leaf(Triangle), Branch { left: Box<BVH>, right: Box<BVH>, bbox: AABB } }
 type BVHNode struct {
 	left  Hittable
 	right Hittable
@@ -18,13 +22,23 @@ func NewBVHNodeFromList(list *HittableList) *BVHNode {
 func NewBVHNode(objects []Hittable, start, end int) *BVHNode {
 	node := &BVHNode{}
 
-	// Choose a random axis to split on
-	axis := RandomInt(0, 2)
+	objectSpan := end - start
+
+	// Calculate bounding box for all objects in this range
+	var bbox AABB
+	for i := start; i < end; i++ {
+		if i == start {
+			bbox = objects[i].BoundingBox()
+		} else {
+			bbox = NewAABBFromBoxes(bbox, objects[i].BoundingBox())
+		}
+	}
+
+	// Choose axis with longest extent (better than random for meshes)
+	axis := bbox.LongestAxis()
 
 	// Create comparator function for sorting
 	comparator := boxCompare(axis)
-
-	objectSpan := end - start
 
 	switch objectSpan {
 	case 1:

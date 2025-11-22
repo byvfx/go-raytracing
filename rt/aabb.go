@@ -123,3 +123,17 @@ func (box AABB) Translate(offset Vec3) AABB {
 		box.Z.Add(offset.Z),
 	)
 }
+
+// LongestAxis returns the index (0=X, 1=Y, 2=Z) of the axis with the longest extent
+func (box AABB) LongestAxis() int {
+	xSize := box.X.Size()
+	ySize := box.Y.Size()
+	zSize := box.Z.Size()
+
+	if xSize > ySize && xSize > zSize {
+		return 0
+	} else if ySize > zSize {
+		return 1
+	}
+	return 2
+}

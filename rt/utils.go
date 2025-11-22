@@ -80,3 +80,13 @@ func LinearToGamma(linear float64) float64 {
 	}
 	return 0
 }
+
+func PowerHeuristic(nf, pdfF, ng, pdfG float64) float64 {
+	f := nf * pdfF
+	g := ng * pdfG
+	return (f * f) / (f*f + g*g)
+}
+
+func BalanceHeuristic(pdfF, pdfG float64) float64 {
+	return pdfF / (pdfF + pdfG)
+}

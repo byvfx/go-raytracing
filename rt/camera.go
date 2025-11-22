@@ -1,3 +1,5 @@
+//TODO add adapdtive sampling to camera.go raycolor function similar to arnold and vray
+
 package rt
 
 import (
@@ -378,13 +380,16 @@ func (c *Camera) GetRay(i, j int) Ray {
 
 // sending out them color rays
 func (c *Camera) RayColor(r Ray, depth int, world Hittable) Color {
+	return c.rayColorInternal(r, depth, world, true)
+}
+
+func (c *Camera) rayColorInternal(r Ray, depth int, world Hittable, allowLightHits bool) Color {
 	if depth <= 0 {
 		return Color{X: 0, Y: 0, Z: 0}
 	}
 
 	rec := &HitRecord{}
 
-	// If the ray hits nothing, return the background color
 	if !world.Hit(r, NewInterval(0.001, math.Inf(1)), rec) {
 		if c.UseSkyGradient {
 			return c.SkyGradient(r)
@@ -398,26 +403,50 @@ func (c *Camera) RayColor(r Ray, depth int, world Hittable) Color {
 	colorFromEmission := rec.Mat.Emitted(rec.U, rec.V, rec.P)
 
 	if !rec.Mat.Scatter(r, rec, &attenuation, &scattered) {
-		// Hit a light source - return emission only
-		return colorFromEmission
-	}
-
-	// For scattered rays, add direct light sampling (NEE)
-	directLight := Color{X: 0, Y: 0, Z: 0}
-
-	if _, isLambertian := rec.Mat.(*Lambertian); isLambertian && len(c.Lights) > 0 {
-		lightIdx := int(RandomDouble() * float64(len(c.Lights)))
-		if lightIdx >= len(c.Lights) {
-			lightIdx = len(c.Lights) - 1
+		// Hit a light source - only return emission if we allow it
+		// When using MIS, we don't want BRDF paths to directly hit lights
+		// (we already sample them explicitly via NEE)
+		if allowLightHits {
+			return colorFromEmission
 		}
-		directLight = c.sampleLight(rec.P, rec.Normal, world, lightIdx)
+		return Color{X: 0, Y: 0, Z: 0}
 	}
 
-	// Recursively trace scattered ray (indirect illumination)
-	colorFromScatter := attenuation.Mult(c.RayColor(scattered, depth-1, world))
+	// Check if material can use NEE/MIS
+	matInfo, implementsInfo := rec.Mat.(MaterialInfo)
+	pdfEval, implementsPDF := rec.Mat.(PDFEvaluator)
 
-	// Combine: direct lighting + indirect lighting
-	return directLight.Mult(attenuation).Add(colorFromScatter)
+	useMIS := implementsInfo && implementsPDF &&
+		matInfo.Properties().CanUseNEE &&
+		len(c.Lights) > 0
+
+	if !useMIS {
+		// Pure BRDF sampling (works for everything)
+		colorFromScatter := attenuation.Mult(c.rayColorInternal(scattered, depth-1, world, true))
+		return colorFromEmission.Add(colorFromScatter)
+	}
+
+	// ============================================================
+	// MULTIPLE IMPORTANCE SAMPLING
+	// ============================================================
+
+	// NEE: Explicitly sample the light for direct illumination
+	lightIdx := int(RandomDouble() * float64(len(c.Lights)))
+	if lightIdx >= len(c.Lights) {
+		lightIdx = len(c.Lights) - 1
+	}
+
+	directLight := c.sampleLightMIS(
+		rec.P, rec.Normal, r.Direction(),
+		world, lightIdx, attenuation, pdfEval,
+	)
+
+	// BRDF path for indirect illumination only
+	// Disable direct light hits since we're using NEE
+	indirectLight := attenuation.Mult(c.rayColorInternal(scattered, depth-1, world, false))
+
+	// Combine: direct (NEE) + indirect (BRDF path)
+	return colorFromEmission.Add(directLight).Add(indirectLight)
 }
 
 func (c *Camera) SkyGradient(r Ray) Color {
@@ -438,9 +467,11 @@ var (
 	BackgroundNight    = Color{X: 0.05, Y: 0.05, Z: 0.2} // Dark blue night sky
 )
 
-// In camera.go - replace the sampleLight method
-
-func (c *Camera) sampleLight(hitPoint Point3, hitNormal Vec3, world Hittable, lightIdx int) Color {
+func (c *Camera) sampleLightMIS(
+	hitPoint Point3, hitNormal Vec3, rayDirection Vec3,
+	world Hittable, lightIdx int,
+	attenuation Color, pdfEval PDFEvaluator,
+) Color {
 	if lightIdx >= len(c.Lights) {
 		return Color{X: 0, Y: 0, Z: 0}
 	}
@@ -477,7 +508,7 @@ func (c *Camera) sampleLight(hitPoint Point3, hitNormal Vec3, world Hittable, li
 	// Get light emission
 	emission := lightQuad.mat.Emitted(0, 0, lightPoint)
 
-	// Calculate PDF using solid angle conversion
+	// Calculate light PDF (area sampling → solid angle)
 	lightArea := lightQuad.Area()
 	cosLightAngle := math.Abs(Dot(lightQuad.normal, lightDir.Neg()))
 
@@ -485,19 +516,23 @@ func (c *Camera) sampleLight(hitPoint Point3, hitNormal Vec3, world Hittable, li
 		return Color{X: 0, Y: 0, Z: 0}
 	}
 
-	// PDF for uniform area sampling: 1/area
-	// Converting to solid angle: pdf_solidAngle = (distance² / (cos_light * area))
-	// Light contribution: emission * cos_surface / pdf_solidAngle
-	// Simplifies to: emission * cos_surface * cos_light * area / distance²
-	pdfSolidAngle := (distanceToLight * distanceToLight) / (cosLightAngle * lightArea)
+	pdfLight := (distanceToLight * distanceToLight) / (cosLightAngle * lightArea)
 
-	// Light contribution with proper PDF weighting
-	contribution := emission.Scale(cosTheta / pdfSolidAngle)
+	// Calculate BRDF PDF
+	wi := rayDirection.Neg().Unit()
+	wo := lightDir
+	pdfBRDF := pdfEval.PDF(wi, wo, hitNormal)
 
-	// Multiply by number of lights (probability of selecting this light is 1/numLights)
-	contribution = contribution.Scale(float64(len(c.Lights)))
+	// MIS weight using balance heuristic: w = pdf_light / (pdf_light + pdf_brdf)
+	weight := pdfLight / (pdfLight + pdfBRDF)
 
-	// Clamp to prevent fireflies from extreme samples (grazing angles, very close distances)
+	// Light contribution with MIS weighting
+	contribution := emission.Scale(cosTheta / pdfLight * weight)
+
+	// Multiply by number of lights and material attenuation
+	contribution = contribution.Mult(attenuation).Scale(float64(len(c.Lights)))
+
+	// Clamp to prevent fireflies
 	maxComponent := 20.0
 	contribution.X = math.Min(contribution.X, maxComponent)
 	contribution.Y = math.Min(contribution.Y, maxComponent)

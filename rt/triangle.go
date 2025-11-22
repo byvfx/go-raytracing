@@ -3,12 +3,14 @@ package rt
 import "math"
 
 // Triangle represents a triangle primitive
+// RUST PORT NOTE: This can be a simple struct with Copy/Clone
+// Consider storing edge vectors to avoid recomputation in Hit()
 type Triangle struct {
 	v0, v1, v2 Point3 // Vertices
-	normal     Vec3   // Face normal
+	normal     Vec3   // Face normal (pre-computed and unit length)
 	mat        Material
 	bbox       AABB
-	D          float64 // Plane constant
+	D          float64 // Plane constant (unused - can be removed)
 }
 
 // NewTriangle creates a new triangle from three vertices

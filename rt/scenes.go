@@ -489,7 +489,7 @@ func CornellBoxScene() (*HittableList, *Camera) {
 
 	camera := NewCameraBuilder().
 		SetResolution(600, 1.0).
-		SetQuality(250, 10).
+		SetQuality(50, 5).
 		SetPosition(
 			Point3{X: 278, Y: 278, Z: -800},
 			Point3{X: 278, Y: 278, Z: 0},
@@ -511,9 +511,9 @@ func GlossyMetalTest() (*HittableList, *Camera) {
 	world.Add(NewPlane(Point3{X: 0, Y: 0, Z: 0}, Vec3{X: 0, Y: 1, Z: 0}, groundMat))
 
 	// Three spheres with increasing glossiness
-	smoothMetal := NewMetal(Color{X: 0.8, Y: 0.6, Z: 0.2}, 0.0) // Mirror
-	mediumMetal := NewMetal(Color{X: 0.8, Y: 0.6, Z: 0.2}, 0.2) // Glossy (MIS helps!)
-	roughMetal := NewMetal(Color{X: 0.8, Y: 0.6, Z: 0.2}, 0.5)  // Very glossy (MIS helps a lot!)
+	smoothMetal := NewMetal(Color{X: 0.8, Y: 0.6, Z: 0.2}, 0.0)
+	mediumMetal := NewMetal(Color{X: 0.8, Y: 0.6, Z: 0.2}, 0.2)
+	roughMetal := NewMetal(Color{X: 0.8, Y: 0.6, Z: 0.2}, 0.5)
 
 	world.Add(NewSphere(Point3{X: -2.5, Y: 1, Z: 0}, 1.0, smoothMetal))
 	world.Add(NewSphere(Point3{X: 0, Y: 1, Z: 0}, 1.0, mediumMetal))
@@ -530,8 +530,8 @@ func GlossyMetalTest() (*HittableList, *Camera) {
 	world.Add(areaLight)
 
 	camera := NewCameraBuilder().
-		SetResolution(800, 16.0/9.0).
-		SetQuality(100, 50).
+		SetResolution(640, 16.0/9.0).
+		SetQuality(100, 10).
 		SetPosition(
 			Point3{X: 0, Y: 2, Z: 10},
 			Point3{X: 0, Y: 1, Z: 0},
@@ -539,6 +539,201 @@ func GlossyMetalTest() (*HittableList, *Camera) {
 		).
 		SetLens(40, 0, 10).
 		SetBackground(BackgroundBlack).
+		AddLight(areaLight).
+		Build()
+
+	return world, camera
+}
+
+// CornellBoxGlossy - Cornell Box with glossy metals to showcase MIS
+func CornellBoxGlossy() (*HittableList, *Camera) {
+	world := NewHittableList()
+
+	// =============================================================================
+	// MATERIALS
+	// =============================================================================
+	whiteMat := NewLambertian(Color{X: 0.73, Y: 0.73, Z: 0.73})
+	redMat := NewLambertian(Color{X: 0.65, Y: 0.05, Z: 0.05})
+	greenMat := NewLambertian(Color{X: 0.12, Y: 0.45, Z: 0.15})
+
+	// Glossy metals with different roughness
+	goldShiny := NewMetal(Color{X: 1.0, Y: 0.84, Z: 0.0}, 0.05)     // Polished gold
+	goldBrushed := NewMetal(Color{X: 1.0, Y: 0.84, Z: 0.0}, 0.15)   // Brushed gold
+	silverRough := NewMetal(Color{X: 0.95, Y: 0.95, Z: 0.98}, 0.25) // Rough silver
+
+	// Glass sphere for variety
+	glassMat := NewDielectric(1.5)
+
+	// Bright area light
+	lightMat := NewDiffuseLightColor(Color{X: 15, Y: 15, Z: 15})
+
+	// =============================================================================
+	// CORNELL BOX WALLS
+	// =============================================================================
+
+	// Green wall (right)
+	world.Add(NewQuad(
+		Point3{X: 555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 555, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 555},
+		greenMat,
+	))
+
+	// Red wall (left)
+	world.Add(NewQuad(
+		Point3{X: 0, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 555, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 555},
+		redMat,
+	))
+
+	// White floor
+	world.Add(NewQuad(
+		Point3{X: 0, Y: 0, Z: 0},
+		Vec3{X: 555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 555},
+		whiteMat,
+	))
+
+	// White ceiling
+	world.Add(NewQuad(
+		Point3{X: 555, Y: 555, Z: 555},
+		Vec3{X: -555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: -555},
+		whiteMat,
+	))
+
+	// White back wall
+	world.Add(NewQuad(
+		Point3{X: 0, Y: 0, Z: 555},
+		Vec3{X: 555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 555, Z: 0},
+		whiteMat,
+	))
+
+	// =============================================================================
+	// AREA LIGHT
+	// =============================================================================
+	areaLight := NewQuad(
+		Point3{X: 213, Y: 554, Z: 227},
+		Vec3{X: 130, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 105},
+		lightMat,
+	)
+	world.Add(areaLight)
+
+	// =============================================================================
+	// GLOSSY METAL SPHERES
+	// =============================================================================
+
+	// Back row: Three gold spheres with increasing roughness
+	world.Add(NewSphere(Point3{X: 150, Y: 100, Z: 400}, 100, goldShiny))   // Shiny
+	world.Add(NewSphere(Point3{X: 278, Y: 100, Z: 400}, 100, goldBrushed)) // Brushed
+	world.Add(NewSphere(Point3{X: 410, Y: 100, Z: 400}, 100, silverRough)) // Rough silver
+
+	// Front: Large glass sphere
+	world.Add(NewSphere(Point3{X: 278, Y: 130, Z: 180}, 130, glassMat))
+
+	// =============================================================================
+	// CAMERA
+	// =============================================================================
+	camera := NewCameraBuilder().
+		SetResolution(600, 1.0).
+		SetQuality(200, 5).
+		SetPosition(
+			Point3{X: 278, Y: 278, Z: -800},
+			Point3{X: 278, Y: 200, Z: 200},
+			Vec3{X: 0, Y: 1, Z: 0},
+		).
+		SetLens(40, 0, 10).
+		SetBackground(BackgroundBlack).
+		AddLight(areaLight).
+		Build()
+
+	return world, camera
+}
+
+// CornellBoxLucy - Cornell Box with Lucy statue
+func CornellBoxLucy() (*HittableList, *Camera) {
+	world := NewHittableList()
+
+	whiteMat := NewLambertian(Color{X: 0.73, Y: 0.73, Z: 0.73})
+	redMat := NewLambertian(Color{X: 0.65, Y: 0.05, Z: 0.05})
+	greenMat := NewLambertian(Color{X: 0.12, Y: 0.45, Z: 0.15})
+	lightMat := NewDiffuseLight(NewSolidColor(Color{X: 15, Y: 15, Z: 15}))
+
+	areaLight := NewQuad(
+		Point3{X: 213, Y: 554, Z: 227},
+		Vec3{X: 130, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 105},
+		lightMat,
+	)
+	world.Add(areaLight)
+
+	// Walls
+	world.Add(NewQuad(
+		Point3{X: 555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 555, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 555},
+		greenMat,
+	))
+	world.Add(NewQuad(
+		Point3{X: 0, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 555, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 555},
+		redMat,
+	))
+	world.Add(NewQuad(
+		Point3{X: 0, Y: 0, Z: 0},
+		Vec3{X: 555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 555},
+		whiteMat,
+	))
+	world.Add(NewQuad(
+		Point3{X: 555, Y: 555, Z: 555},
+		Vec3{X: -555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: -555},
+		whiteMat,
+	))
+	world.Add(NewQuad(
+		Point3{X: 0, Y: 0, Z: 555},
+		Vec3{X: 555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 555, Z: 0},
+		whiteMat,
+	))
+
+	// Load Lucy model
+	lucyMat := NewLambertian(Color{X: 0.9, Y: 0.9, Z: 0.9})
+
+	// Lucy bounds: [-465, -0.025, -267] to [465, 1597, 267]
+	// Scale to fit in Cornell box (height ~400 units)
+	scale := 0.25
+
+	lucy, err := LoadOBJWithTransform(
+		"assets/models/lucy_low.obj",
+		lucyMat,
+		NewTransform().
+			SetScale(Vec3{X: scale, Y: scale, Z: scale}).
+			SetRotationY(0).
+			SetPosition(Vec3{X: 278, Y: 0, Z: 278}),
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	world.Add(lucy)
+
+	camera := NewCameraBuilder().
+		SetResolution(600, 1.0).
+		SetQuality(150, 12).
+		SetPosition(
+			Point3{X: 278, Y: 278, Z: -800},
+			Point3{X: 278, Y: 278, Z: 0},
+			Vec3{X: 0, Y: 1, Z: 0},
+		).
+		SetLens(40, 0, 10).
+		SetBackground(Color{0, 0, 0}).
 		AddLight(areaLight).
 		Build()
 
