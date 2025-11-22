@@ -36,3 +36,13 @@ dist/
 
 # OS files
 Thumbs.db
+
+# 3d party model files
+*.obj
+*.fbx
+*.dae
+*.3ds
+*.abc
+*.ply
+*.stl
+*.gltf
