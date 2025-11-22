@@ -710,7 +710,7 @@ func CornellBoxLucy() (*HittableList, *Camera) {
 	scale := 0.25
 
 	lucy, err := LoadOBJWithTransform(
-		"assets/models/lucy_low.obj",
+		"assets/models/lucy_mid.obj",
 		lucyMat,
 		NewTransform().
 			SetScale(Vec3{X: scale, Y: scale, Z: scale}).
