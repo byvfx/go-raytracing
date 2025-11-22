@@ -2,6 +2,7 @@ package rt
 
 import (
 	"sort"
+	"sync"
 )
 
 // BVHNode represents a node in a Bounding Volume Hierarchy tree
@@ -19,7 +20,16 @@ func NewBVHNodeFromList(list *HittableList) *BVHNode {
 	copy(objects, list.Objects)
 	return NewBVHNode(objects, 0, len(objects))
 }
+
+// Threshold for when to parallelize BVH construction
+// Objects below this count use sequential construction
+const bvhParallelThreshold = 1000
+
 func NewBVHNode(objects []Hittable, start, end int) *BVHNode {
+	return newBVHNodeParallel(objects, start, end, true)
+}
+
+func newBVHNodeParallel(objects []Hittable, start, end int, allowParallel bool) *BVHNode {
 	node := &BVHNode{}
 
 	objectSpan := end - start
@@ -61,8 +71,28 @@ func NewBVHNode(objects []Hittable, start, end int) *BVHNode {
 		})
 
 		mid := start + objectSpan/2
-		node.left = NewBVHNode(objects, start, mid)
-		node.right = NewBVHNode(objects, mid, end)
+
+		// Use parallel construction for large subtrees
+		if allowParallel && objectSpan >= bvhParallelThreshold {
+			var wg sync.WaitGroup
+			wg.Add(2)
+
+			go func() {
+				defer wg.Done()
+				node.left = newBVHNodeParallel(objects, start, mid, true)
+			}()
+
+			go func() {
+				defer wg.Done()
+				node.right = newBVHNodeParallel(objects, mid, end, true)
+			}()
+
+			wg.Wait()
+		} else {
+			// Sequential construction for smaller subtrees
+			node.left = newBVHNodeParallel(objects, start, mid, false)
+			node.right = newBVHNodeParallel(objects, mid, end, false)
+		}
 	}
 
 	// Compute bounding box that encompasses both children
