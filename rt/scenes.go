@@ -702,27 +702,46 @@ func CornellBoxLucy() (*HittableList, *Camera) {
 		whiteMat,
 	))
 
-	// Load Lucy model
+	// Load Lucy model with multiple instances
 	lucyMat := NewLambertian(Color{X: 0.9, Y: 0.9, Z: 0.9})
 
 	// Lucy bounds: [-465, -0.025, -267] to [465, 1597, 267]
 	// Scale to fit in Cornell box (height ~400 units)
-	scale := 0.25
+	scale := 0.15 // Smaller to fit multiple instances
 
-	lucy, err := LoadOBJWithTransform(
-		"assets/models/lucy_mid.obj",
-		lucyMat,
-		NewTransform().
-			SetScale(Vec3{X: scale, Y: scale, Z: scale}).
-			SetRotationY(0).
-			SetPosition(Vec3{X: 278, Y: 0, Z: 278}),
-	)
-
-	if err != nil {
-		panic(err)
+	// Create 10 angel instances in a grid pattern
+	positions := []struct {
+		pos Vec3
+		rot float64
+	}{
+		{Vec3{X: 150, Y: 0, Z: 150}, 45},
+		{Vec3{X: 400, Y: 0, Z: 150}, 315},
+		{Vec3{X: 150, Y: 0, Z: 400}, 135},
+		{Vec3{X: 400, Y: 0, Z: 400}, 225},
+		{Vec3{X: 278, Y: 0, Z: 278}, 0},
+		{Vec3{X: 100, Y: 0, Z: 278}, 90},
+		{Vec3{X: 450, Y: 0, Z: 278}, 270},
+		{Vec3{X: 278, Y: 0, Z: 100}, 180},
+		{Vec3{X: 278, Y: 0, Z: 450}, 0},
+		{Vec3{X: 200, Y: 0, Z: 350}, 60},
 	}
 
-	world.Add(lucy)
+	for _, inst := range positions {
+		lucy, err := LoadOBJWithTransform(
+			"assets/models/lucy_mid.obj",
+			lucyMat,
+			NewTransform().
+				SetScale(Vec3{X: scale, Y: scale, Z: scale}).
+				SetRotationY(inst.rot).
+				SetPosition(inst.pos),
+		)
+
+		if err != nil {
+			panic(err)
+		}
+
+		world.Add(lucy)
+	}
 
 	camera := NewCameraBuilder().
 		SetResolution(600, 1.0).
