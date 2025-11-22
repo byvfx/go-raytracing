@@ -23,7 +23,9 @@ Renders to window with progressive scanline display. Saves final image as `image
 
 ### Rendering
 
-- Progressive scanline rendering with live preview (Ebiten)
+- **Parallel bucket rendering** - V-Ray style tile-based rendering with multi-core CPU utilization (4-8x speedup)
+- **Progressive multi-pass rendering** - Preview (1 SPP) → Refining (25% SPP) → Final (full SPP)
+- **Spiral bucket ordering** - Center-out rendering for better visual feedback
 - Anti-aliasing via multi-sampling (configurable samples/pixel)
 - Gamma correction (gamma 2.0)
 - Max ray depth control for indirect lighting
@@ -75,8 +77,9 @@ camera := rt.NewCameraBuilder().
 
 **BVH (Bounding Volume Hierarchy):**
 
-- Automatic construction from scene
-- Recursive axis-aligned subdivision
+- Custom BVH implementation with recursive binary tree construction
+- Longest-axis splitting heuristic for optimal tree balance
+- Pre-built mesh BVH for OBJ models (hundreds of thousands of triangles)
 - Ray culling via bounding box tests
 - 10-100x speedup for large scenes
 
@@ -89,10 +92,11 @@ bvh := rt.NewBVHNodeFromList(world)
 - **Sphere** - Static and moving spheres
 - **Plane** - Infinite planes
 - **Quad** - Axis-aligned quadrilaterals
-- **Triangle** - Basic triangle primitive
+- **Triangle** - Möller-Trumbore ray-triangle intersection
 - **Circle/Disk** - Flat circular surfaces
 - **Box** - Compound primitive (6 quads)
 - **Pyramid** - Compound primitive (4 triangles + base)
+- **OBJ Mesh Loading** - Wavefront OBJ file support with automatic BVH construction
 - **BVHNode** - Acceleration structure node
 - All objects have axis-aligned bounding boxes
 
@@ -105,7 +109,9 @@ bvh := rt.NewBVHNodeFromList(world)
 
 ### Lighting
 
+- **Multiple Importance Sampling (MIS)** - Optimal combination of light sampling (NEE) and BRDF sampling using balance heuristic
 - **Next Event Estimation (NEE)** - Direct light sampling for reduced noise
+- **PDF-based Sampling** - Importance sampling for lights, BRDF, and mixed strategies
 - **Area lights** - Quad-based emissive surfaces
 - **Light registration** - Camera tracks lights for importance sampling
 - **Shadow rays** - Visibility testing with proper PDF weighting
@@ -120,7 +126,10 @@ Predefined scenes:
 - `PerlinSpheresScene()` - Spheres with Perlin noise textures
 - `EarthScene()` - Textured Earth sphere
 - `QuadsScene()` - Box-like room made of quads
-- `CornellBoxScene()` - Classic Cornell Box setup
+- `CornellBoxScene()` - Classic Cornell Box with diffuse materials
+- `CornellBoxGlossy()` - Cornell Box with glossy metal spheres showcasing MIS
+- `CornellBoxLucy()` - Cornell Box with Lucy statue mesh (280K triangles)
+- `GlossyMetalTest()` - Three spheres with varying roughness
 - `PrimitivesScene()` - Scene showcasing various primitives
 
 `SceneConfig` allows control over material probabilities, motion blur per material, grid bounds, etc.
@@ -128,7 +137,7 @@ Predefined scenes:
 ## Usage
 
 ```go
-// Basic setup
+// Basic setup with bucket renderer
 world := rt.RandomScene()
 bvh := rt.NewBVHNodeFromList(world)
 
@@ -138,8 +147,20 @@ camera.LookFrom = rt.Point3{X: 13, Y: 2, Z: 3}
 camera.LookAt = rt.Point3{X: 0, Y: 0, Z: 0}
 camera.Initialize()
 
-renderer := rt.NewProgressiveRenderer(camera, bvh)
+renderer := rt.NewBucketRenderer(camera, bvh)
 ebiten.RunGame(renderer)
+```
+
+```go
+// Load OBJ mesh
+mesh := rt.LoadOBJ("models/lucy.obj", rt.NewLambertian(rt.NewSolidColor(0.8, 0.8, 0.8)))
+
+// Or with transform
+mesh := rt.LoadOBJWithTransform(
+    "models/lucy.obj",
+    rt.NewLambertian(rt.NewSolidColor(0.8, 0.8, 0.8)),
+    rt.RotateY(180) * rt.Scale(0.25, 0.25, 0.25),
+)
 ```
 
 ```go
