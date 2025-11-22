@@ -151,7 +151,7 @@ func (r *BucketRenderer) Update() error {
 		if r.currentPass < r.totalPasses {
 			go r.renderPass()
 		} else {
-			// All passes done
+			// All passes done - currentPass is now equal to totalPasses
 			r.completed = true
 			r.renderEnd = time.Now()
 			r.drawStatsToFramebuffer()
@@ -365,7 +365,7 @@ func (r *BucketRenderer) drawRenderSettings(screen *ebiten.Image) {
 		r.camera.ImageHeight,
 		r.camera.SamplesPerPixel,
 		r.camera.MaxDepth,
-		r.currentPass+1,
+		min(r.currentPass+1, r.totalPasses), // Cap at totalPasses when completed
 		r.totalPasses,
 		progress,
 		FormatDuration(elapsed),
