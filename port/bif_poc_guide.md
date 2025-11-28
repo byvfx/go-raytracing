@@ -292,6 +292,12 @@ pub struct Scene {
     pub layers: Vec<Layer>,
 }
 
+impl Default for Scene {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Scene {
     pub fn new() -> Self {
         Scene {
@@ -467,6 +473,10 @@ fn calculate_bounds(vertices: &[Vec3]) -> AABB {
 ```
 
 ## Step 4: USD Bridge (FFI)
+
+> **Optional Step**: USD integration requires a C++ USD installation. You can skip this step entirely for the initial PoC—the scene graph, renderer, and viewport will still work. Return to this step when you need USD export.
+>
+> To skip: Remove `usd_bridge` from workspace members in `Cargo.toml` and comment out the USD-related code in `crates/app/src/main.rs`.
 
 ### 4.1 Create `crates/usd_bridge/Cargo.toml`
 
@@ -952,7 +962,7 @@ pub fn render(scene: &Scene, camera: &Camera, width: u32, height: u32) -> RgbIma
                             hit.instance_id = instance.id;
                             
                             // Simple shading: normal visualization
-                            color = (hit.normal.into(): Vec3) * 0.5 + Vec3::splat(0.5);
+                            color = Vec3::from(hit.normal) * 0.5 + Vec3::splat(0.5);
                             break; // Take first hit for now
                         }
                     }
@@ -1080,7 +1090,7 @@ impl Viewport {
             push_constant_ranges: &[
                 wgpu::PushConstantRange {
                     stages: wgpu::ShaderStages::VERTEX,
-                    range: 0..128, // mat4 view + mat4 proj
+                    range: 0..64, // mat4 view_proj (4x4 f32 = 64 bytes)
                 },
             ],
         });

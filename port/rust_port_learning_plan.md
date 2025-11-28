@@ -2,6 +2,25 @@
 
 This document reorganizes the existing porting material in `port/` into a step-by-step loop that lets you learn Rust while keeping the Go raytracer as a reference. Every stage ends with a concrete validation gate so the migration never drifts into "messy" territory.
 
+## Quick Reference for AI Assistants
+
+**What this project is:** Porting a Go raytracer (`rt/` folder) to Rust, while adding scene assembly features (instancing, USD export, viewport).
+
+**Key files to read first:**
+1. `rt/vec3.go`, `rt/ray.go`, `rt/material.go` — Go reference implementations
+2. `port/bif_poc_guide.md` — Step-by-step Rust code to generate
+3. `port/RUST_PORT_CHECKLIST.md` — Detailed task list
+
+**Crates to create (PoC):** `app`, `scene`, `renderer`, `viewport`, `io_gltf`, `usd_bridge` (USD is optional)
+
+**Do NOT create:** A separate `crates/math` crate — use `glam` directly for the PoC.
+
+**Two paths:**
+1. **PoC Path** (fast): Follow `bif_poc_guide.md` Steps 1-7 to get a working demo
+2. **Learning Path** (thorough): Follow Stages 0-7 below, implementing custom types before using libraries
+
+---
+
 ## Document Roles and How to Use Them
 
 | File | Primary Purpose | When to consult |
@@ -31,20 +50,26 @@ Each stage references the checklist sections (`RUST_PORT_CHECKLIST.md`) and migr
 - **Goal**: Clean slate Rust workspace + baseline tests ready to run.
 - **Inputs**: `bif_poc_guide.md` Step 1, `port/README.md` prerequisites.
 - **Tasks**:
-  - Recreate the minimal Cargo workspace (root + `crates/math`, `crates/renderer`, etc.) per PoC guide.
+  - Create the `bif/` directory as a sibling to `go-raytracing/` (or inside it as `go-raytracing/bif/`).
+  - Recreate the minimal Cargo workspace per PoC guide: `app`, `scene`, `renderer`, `viewport`, `io_gltf`, and optionally `usd_bridge`.
   - Configure toolchain (`rustup`, `cargo fmt/clippy`, VS Code rust-analyzer).
   - Copy small Go fixtures (e.g., unit test scenes) into `assets/` for later comparisons.
 - **Done when**: `cargo check` succeeds and a `tests/smoke.rs` (even empty) runs.
 
+> **For AI Assistants**: The PoC does NOT create a `crates/math` crate—it uses `glam` directly. See `bif_poc_guide.md` for the exact crate list.
+
 ### Stage 1 – Core Math & Utility Types (1-2 days)
 
 - **Checklist refs**: Sections 1-4 (Vec3, Ray, Interval, AABB).
-- **Docs**: `bif_migration_guide.md` Phase 1.1, Go files `rt/vec3.go`, `rt/ray.go`, `rt/interval.go`, `rt/aabb.go`.
+- **Docs**: `bif_migration_guide.md` Phase 1.1, Go files `rt/vec3.go`, `rt/ray.go`, `rt/interval.go`, `rt/aabb.go` (in parent workspace).
 - **Learning focus**: Ownership basics, trait derivations, unit tests with `approx` or custom asserts.
 - **Deliverables**:
-  - `crates/math` with fully tested vec3/point/color types and helper functions.
+  - For **PoC path**: Use `glam` crate directly (no custom math crate needed).
+  - For **learning path**: Create `crates/math` with custom Vec3/Ray/Interval/AABB types that mirror Go, then optionally swap to `glam` later.
   - Benchmark or quick comparison that matches Go outputs for dot/cross operations.
-- **Validation**: `cargo test -p math` comparing expected values; document results in devlog.
+- **Validation**: `cargo test` comparing expected values against Go reference; document results in devlog.
+
+> **For AI Assistants**: The Go reference files are at `rt/vec3.go`, `rt/ray.go`, etc. in the `go-raytracing` workspace. Read those files to understand the target behavior.
 
 ### Stage 2 – Traits and Primitives (2-3 days)
 
