@@ -314,7 +314,6 @@ func QuadsScene() (*HittableList, *Camera) {
 	return world, camera
 }
 
-// PrimitivesScene demonstrates all primitive types: sphere, circle, quad (as cube), triangle (as pyramid), and infinite plane
 func PrimitivesScene() (*HittableList, *Camera) {
 	world := NewHittableList()
 
@@ -489,7 +488,7 @@ func CornellBoxScene() (*HittableList, *Camera) {
 
 	camera := NewCameraBuilder().
 		SetResolution(600, 1.0).
-		SetQuality(50, 5).
+		SetQuality(500, 5).
 		SetPosition(
 			Point3{X: 278, Y: 278, Z: -800},
 			Point3{X: 278, Y: 278, Z: 0},
@@ -545,7 +544,6 @@ func GlossyMetalTest() (*HittableList, *Camera) {
 	return world, camera
 }
 
-// CornellBoxGlossy - Cornell Box with glossy metals to showcase MIS
 func CornellBoxGlossy() (*HittableList, *Camera) {
 	world := NewHittableList()
 
@@ -728,7 +726,7 @@ func CornellBoxLucy() (*HittableList, *Camera) {
 
 	for _, inst := range positions {
 		lucy, err := LoadOBJWithTransform(
-			"assets/models/lucy_mid.obj",
+			"assets/models/lucy_low.obj",
 			lucyMat,
 			NewTransform().
 				SetScale(Vec3{X: scale, Y: scale, Z: scale}).
