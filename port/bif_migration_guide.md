@@ -1,5 +1,7 @@
 # BIF Migration Guide: From Go Raytracer to Production Scene Assembler
 
+<!-- markdownlint-disable MD022 MD032 -->
+
 ## Current Implementation Review
 
 Your Go raytracer has implemented the following features that will migrate to BIF:
@@ -44,6 +46,10 @@ Your Go raytracer has implemented the following features that will migrate to BI
 - Anti-aliasing via multi-sampling
 - Gamma correction (gamma 2.0)
 - Multiple pre-built scenes
+
+> **Scope & Timeline**: The phases in this guide line up with Stages 1-5 in `rust_port_learning_plan.md` (direct port through scene integration). Use the learning plan to decide *when* to enter each phase, then follow the concrete examples here while checking items off in `RUST_PORT_CHECKLIST.md`.
+>
+> **Crate Mapping**: The PoC workspace (`bif_poc_guide.md`) creates: `app`, `scene`, `renderer`, `viewport`, `io_gltf`, `usd_bridge`. A `framebuffer` crate is added post-PoC during Stage 4 when progressive refinement is implemented.
 
 ## Migration Strategy
 

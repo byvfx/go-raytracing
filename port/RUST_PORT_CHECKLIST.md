@@ -1,11 +1,13 @@
 # Rust Port Checklist
 
 ## Prerequisites
+
 - [ ] Set up Rust project with cargo
 - [ ] Add dependencies (see below)
 - [ ] Decide on rendering architecture (offline vs interactive)
 
 ## Recommended Crates
+
 ```toml
 [dependencies]
 # Math and vectors
@@ -34,23 +36,43 @@ pollster = "0.3"           # Async executor
 anyhow = "1.0"             # Error handling
 ```
 
+## How to Use This Checklist
+
+- Pair this file with `rust_port_learning_plan.md`. Each stage in the plan references the sections below so you always know *when* to tackle a block of work.
+- Quick stage mapping:
+    - **Stage 0** – Workspace bring-up: see `bif_poc_guide.md` Steps 1-7 (no checklist sections yet).
+    - **Stage 1** – Core math types: Sections 1-4.
+    - **Stage 2** – Traits & primitives: Sections 5-11.
+    - **Stage 3** – Materials & textures: Sections 7, 13-16.
+    - **Stage 4** – BVH, camera, CPU renderer: Sections 12, 17-19. (framebuffer crate deferred to post-PoC)
+    - **Stage 5** – Scene graph, IO: Sections 18-21, 32.
+    - **Stage 6** – USD/tooling/testing: Sections 20-26 + `usd_bridge` crate (`bif_poc_guide.md` Step 4).
+    - **Stage 7+** – Optimizations, GPU, advanced features: Sections 22-31 plus Advanced Features.
+- As you complete a stage, check off the corresponding items here and capture metrics/screenshots in `devlog/` to keep the documentation synchronized.
+
+> **Crate Reference:** The PoC creates these crates: `app`, `scene`, `renderer`, `viewport`, `io_gltf`, `usd_bridge`. A `framebuffer` crate is added post-PoC during Stage 4 when progressive refinement is implemented.
+
 ## Core Types (High Priority)
 
 ### 1. Vector Math
+
 - [ ] `Vec3` type using `glam::Vec3A` (SIMD-aligned)
 - [ ] `Point3` type alias: `type Point3 = Vec3;`
 - [ ] `Color` type alias: `type Color = Vec3;`
 - [ ] Helper functions: `dot()`, `cross()`, `reflect()`, `refract()`
 
 ### 2. Ray
+
 - [ ] `Ray` struct with origin, direction, time
 - [ ] `at(t: f64) -> Point3` method
 
 ### 3. Interval
+
 - [ ] `Interval` struct with min/max
 - [ ] Methods: `contains()`, `clamp()`, `expand()`, `size()`
 
 ### 4. AABB (Axis-Aligned Bounding Box)
+
 - [ ] `AABB` struct with x, y, z intervals
 - [ ] `hit()` method for ray-box intersection
 - [ ] `longest_axis()` method
@@ -59,16 +81,19 @@ anyhow = "1.0"             # Error handling
 ## Traits (Interfaces)
 
 ### 5. Hittable Trait
+
 ```rust
 trait Hittable: Send + Sync {
     fn hit(&self, r: &Ray, ray_t: Interval, rec: &mut HitRecord) -> bool;
     fn bounding_box(&self) -> AABB;
 }
 ```
+
 - [ ] Define trait
 - [ ] Add `Send + Sync` for thread safety
 
 ### 6. Material Trait
+
 ```rust
 trait Material: Send + Sync {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) 
@@ -78,42 +103,50 @@ trait Material: Send + Sync {
     }
 }
 ```
+
 - [ ] Define trait
 - [ ] Add optional PDF methods for MIS
 
 ### 7. Texture Trait
+
 ```rust
 trait Texture: Send + Sync {
     fn value(&self, u: f64, v: f64, p: Point3) -> Color;
 }
 ```
+
 - [ ] Define trait
 
 ## Primitives
 
 ### 8. Triangle
+
 - [ ] Implement `Hittable` for `Triangle`
 - [ ] Möller-Trumbore intersection
 - [ ] Pre-compute bounding box
 - [ ] Consider storing edge vectors
 
 ### 9. Sphere
+
 - [ ] Implement `Hittable` for `Sphere`
 - [ ] Moving sphere support
 - [ ] UV mapping
 
 ### 10. Quad
+
 - [ ] Implement `Hittable` for `Quad`
 - [ ] Point sampling for area lights
 - [ ] PDF evaluation
 
 ### 11. Plane
+
 - [ ] Implement `Hittable` for `Plane`
 - [ ] Infinite plane intersection
 
 ## Acceleration Structures
 
 ### 12. BVH
+
 ```rust
 enum BVHNode {
     Leaf {
@@ -127,6 +160,7 @@ enum BVHNode {
     },
 }
 ```
+
 - [ ] Recursive construction with longest axis heuristic
 - [ ] Consider SAH (Surface Area Heuristic) for production
 - [ ] Implement `Hittable` for `BVHNode`
@@ -134,33 +168,39 @@ enum BVHNode {
 ## Materials
 
 ### 13. Lambertian (Diffuse)
+
 - [ ] Cosine-weighted hemisphere sampling
 - [ ] Texture support
 - [ ] PDF evaluation for MIS
 
 ### 14. Metal
+
 - [ ] Perfect reflection
 - [ ] Fuzz/roughness parameter
 - [ ] PDF evaluation for MIS
 
 ### 15. Dielectric (Glass)
+
 - [ ] Fresnel equations
 - [ ] Refraction with Snell's law
 - [ ] Total internal reflection
 
 ### 16. DiffuseLight
+
 - [ ] Emission-only material
 - [ ] Texture support
 
 ## Camera & Rendering
 
 ### 17. Camera
+
 - [ ] Builder pattern for configuration
 - [ ] Lens parameters (FOV, focus, aperture)
 - [ ] Motion blur support
 - [ ] Ray generation with DOF
 
 ### 18. Bucket Renderer
+
 ```rust
 struct BucketRenderer {
     camera: Camera,
@@ -169,12 +209,14 @@ struct BucketRenderer {
     framebuffer: Arc<Mutex<RgbaImage>>,
 }
 ```
+
 - [ ] Parallel bucket rendering with `rayon`
 - [ ] Spiral bucket ordering
 - [ ] Progressive multi-pass rendering
 - [ ] Thread-safe framebuffer updates
 
 ### 19. MIS Implementation
+
 - [ ] Light sampling
 - [ ] BRDF sampling
 - [ ] Balance heuristic weighting
@@ -183,12 +225,14 @@ struct BucketRenderer {
 ## File I/O
 
 ### 20. OBJ Loader
+
 - [ ] Parse OBJ files with `obj` or `tobj` crate
 - [ ] Build BVH from triangles
 - [ ] Transform support
 - [ ] Material assignment
 
 ### 21. Image Export
+
 - [ ] PNG export with `image` crate
 - [ ] Gamma correction
 - [ ] Tone mapping
@@ -196,16 +240,19 @@ struct BucketRenderer {
 ## Optimizations
 
 ### 22. SIMD
+
 - [ ] Use `glam` for automatic SIMD vectorization
 - [ ] Ensure proper alignment with `Vec3A`
 - [ ] Profile hot paths
 
 ### 23. Memory Layout
+
 - [ ] Use `#[repr(C)]` for predictable layout
 - [ ] Consider struct-of-arrays for triangle meshes
 - [ ] Cache-friendly data structures
 
 ### 24. Profiling
+
 - [ ] Add `--release` profile optimizations
 - [ ] Profile with `cargo flamegraph`
 - [ ] Identify bottlenecks
@@ -213,12 +260,14 @@ struct BucketRenderer {
 ## Testing
 
 ### 25. Unit Tests
+
 - [ ] Vector math tests
 - [ ] Ray-primitive intersection tests
 - [ ] Material scattering tests
 - [ ] BVH construction tests
 
 ### 26. Integration Tests
+
 - [ ] Render test scenes
 - [ ] Compare output with Go version
 - [ ] Validate MIS implementation
@@ -226,16 +275,19 @@ struct BucketRenderer {
 ## Advanced Features (Future)
 
 ### 27. GPU Acceleration (Optional)
+
 - [ ] OptiX backend for NVIDIA
 - [ ] Embree for CPU ray tracing
 - [ ] Vulkan compute shaders
 
 ### 28. Scene Format
+
 - [ ] JSON/YAML scene description
 - [ ] Material library
 - [ ] Camera presets
 
 ### 29. UI (Optional)
+
 - [ ] Real-time preview with accumulation
 - [ ] Interactive camera controls
 - [ ] Render settings UI
@@ -243,17 +295,20 @@ struct BucketRenderer {
 ## Code Quality
 
 ### 30. Documentation
+
 - [ ] Doc comments on public APIs
 - [ ] Examples in doc tests
 - [ ] Architecture overview
 
 ### 31. Error Handling
+
 - [ ] Use `anyhow` or `thiserror`
 - [ ] Proper error propagation
 - [ ] Meaningful error messages
 
 ### 32. Code Organization
-```
+
+```text
 src/
 ├── main.rs
 ├── lib.rs

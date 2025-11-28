@@ -1,5 +1,7 @@
 # BIF Scene Assembler - Proof of Concept Guide
 
+<!-- markdownlint-disable MD022 MD032 MD031 MD029 -->
+
 ## Vision
 BIF is a modern scene assembler and renderer inspired by Isotropix Clarisse, building on your existing Go raytracer implementation. The project focuses on:
 - Massive scene scalability via instancing and strict lazy evaluation
@@ -20,12 +22,14 @@ Your Go raytracer already implements:
 
 This proof of concept will port these features to Rust while adding BIF's scene assembly capabilities.
 
+> **Scope & Timeline**: This guide covers Stage 0 through Stage 2 of `rust_port_learning_plan.md`—workspace bring-up, core crates, and the first proof-of-concept renderer. Use it alongside `RUST_PORT_CHECKLIST.md` to know exactly which items you are closing out while following these steps.
+
 ## Architecture Overview
 
-```
-+-------------------- UI Layer (Choose One) -------------------+
-| Option A: egui (Pure Rust, quick prototyping)               |
-| Option B: Qt 6 (C++/QML, production-ready with docking)      |
+```text
++-------------------- UI Layer -------------------+
+| For the PoC: egui (Pure Rust, quick prototyping)               |
+| After the PoC Qt 6 (C++/QML, production-ready with docking)      |
 +------------------------------|--------------------------------+
                                v
 +------------------- UI ↔ Engine Bridge ------------------------+
@@ -76,7 +80,7 @@ sudo apt-get install qt6-base-dev qt6-declarative-dev
 
 ## Repository Structure
 
-```
+```text
 bif/
 ├─ CMakeLists.txt      # Top-level build (if using Qt)
 ├─ Cargo.toml          # Rust workspace
@@ -86,14 +90,21 @@ bif/
 │  └─ shims/
 │     └─ usd_shim/     # Minimal USD C ABI
 ├─ crates/
-│  ├─ app/             # Main application
-│  ├─ scene/           # Scene graph, instances
-│  ├─ renderer/        # CPU path tracer
-│  ├─ viewport/        # wgpu preview
-│  ├─ io_gltf/         # glTF loader
-│  └─ usd_bridge/      # USD FFI wrapper
+│  ├─ app/             # Main application / orchestration (Step 7)
+│  ├─ scene/           # Scene graph, instances, layers (Step 2)
+│  ├─ renderer/        # CPU path tracer core (Step 5)
+│  ├─ viewport/        # wgpu preview renderer (Step 6)
+│  ├─ io_gltf/         # glTF loader (Step 3)
+│  └─ usd_bridge/      # USD FFI wrapper (Step 4)
+├─ docs/               # Porting and architecture notes
+│  ├─ bif_poc_guide.md
+│  ├─ bif_migration_guide.md
+│  ├─ bif_gpu_rendering_architecture.md
+│  └─ rust_port_learning_plan.md
 └─ assets/             # Test assets
 ```
+
+> **Note:** A `framebuffer` crate for shared accumulation may be added post-PoC when integrating progressive refinement (see `rust_port_learning_plan.md` Stage 4).
 
 ## Build Paths
 
@@ -127,6 +138,7 @@ members = [
     "crates/usd_bridge",
 ]
 resolver = "2"
+# Note: framebuffer crate deferred to post-PoC (see rust_port_learning_plan.md Stage 4)
 
 [workspace.package]
 version = "0.1.0"
@@ -1211,6 +1223,60 @@ impl Viewport {
             self.camera.aspect = new_size.width as f32 / new_size.height as f32;
         }
     }
+}
+```
+
+### 6.3 Create `crates/viewport/src/shader.wgsl`
+
+```wgsl
+struct VertexOutput {
+    @builtin(position) position: vec4<f32>,
+    @location(0) color: vec4<f32>,
+};
+
+var<push_constant> view_proj: mat4x4<f32>;
+
+@vertex
+fn vs_main(
+    @builtin(vertex_index) vertex_index: u32,
+    @location(0) transform_0: vec4<f32>,
+    @location(1) transform_1: vec4<f32>,
+    @location(2) transform_2: vec4<f32>,
+    @location(3) transform_3: vec4<f32>,
+    @location(4) color: vec4<f32>,
+) -> VertexOutput {
+    let transform = mat4x4<f32>(transform_0, transform_1, transform_2, transform_3);
+    
+    // Cube wireframe vertices (24 vertices for 12 edges)
+    var positions = array<vec3<f32>, 24>(
+        // Front face edges
+        vec3(-0.5, -0.5, 0.5), vec3(0.5, -0.5, 0.5),
+        vec3(0.5, -0.5, 0.5), vec3(0.5, 0.5, 0.5),
+        vec3(0.5, 0.5, 0.5), vec3(-0.5, 0.5, 0.5),
+        vec3(-0.5, 0.5, 0.5), vec3(-0.5, -0.5, 0.5),
+        // Back face edges
+        vec3(-0.5, -0.5, -0.5), vec3(0.5, -0.5, -0.5),
+        vec3(0.5, -0.5, -0.5), vec3(0.5, 0.5, -0.5),
+        vec3(0.5, 0.5, -0.5), vec3(-0.5, 0.5, -0.5),
+        vec3(-0.5, 0.5, -0.5), vec3(-0.5, -0.5, -0.5),
+        // Connecting edges
+        vec3(-0.5, -0.5, 0.5), vec3(-0.5, -0.5, -0.5),
+        vec3(0.5, -0.5, 0.5), vec3(0.5, -0.5, -0.5),
+        vec3(0.5, 0.5, 0.5), vec3(0.5, 0.5, -0.5),
+        vec3(-0.5, 0.5, 0.5), vec3(-0.5, 0.5, -0.5),
+    );
+    
+    let world_pos = transform * vec4(positions[vertex_index], 1.0);
+    
+    var out: VertexOutput;
+    out.position = view_proj * world_pos;
+    out.color = color;
+    return out;
+}
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    return in.color;
 }
 ```
 
