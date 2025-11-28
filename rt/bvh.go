@@ -1,6 +1,7 @@
 package rt
 
 import (
+	"runtime"
 	"sort"
 	"sync"
 )
@@ -15,88 +16,202 @@ type BVHNode struct {
 	bbox  AABB
 }
 
+// BVHLeaf holds multiple primitives in a single leaf node
+// This reduces tree depth and improves cache locality
+type BVHLeaf struct {
+	objects []Hittable
+	bbox    AABB
+}
+
+func (l *BVHLeaf) Hit(r Ray, rayT Interval, rec *HitRecord) bool {
+	hitAnything := false
+	closest := rayT.Max
+
+	for _, obj := range l.objects {
+		if obj.Hit(r, NewInterval(rayT.Min, closest), rec) {
+			hitAnything = true
+			closest = rec.T
+		}
+	}
+	return hitAnything
+}
+
+func (l *BVHLeaf) BoundingBox() AABB {
+	return l.bbox
+}
+
+// bvhPrimitive caches bounding box and centroid for fast sorting
+type bvhPrimitive struct {
+	index    int
+	bbox     AABB
+	centroid Vec3
+}
+
+// Tuning constants
+const (
+	bvhParallelThreshold = 8192 // Min objects to spawn goroutines
+	bvhLeafMaxSize       = 4    // Max primitives per leaf node
+)
+
+// bvhSemaphore limits concurrent goroutines during BVH construction
+var bvhSemaphore chan struct{}
+var bvhSemaphoreOnce sync.Once
+
+func initBVHSemaphore() {
+	bvhSemaphore = make(chan struct{}, runtime.NumCPU())
+}
+
 func NewBVHNodeFromList(list *HittableList) *BVHNode {
-	objects := make([]Hittable, len(list.Objects))
-	copy(objects, list.Objects)
+	objects := list.Objects
 	return NewBVHNode(objects, 0, len(objects))
 }
 
-// Threshold for when to parallelize BVH construction
-// Objects below this count use sequential construction
-const bvhParallelThreshold = 1000
-
 func NewBVHNode(objects []Hittable, start, end int) *BVHNode {
-	return newBVHNodeParallel(objects, start, end, true)
-}
+	bvhSemaphoreOnce.Do(initBVHSemaphore)
 
-func newBVHNodeParallel(objects []Hittable, start, end int, allowParallel bool) *BVHNode {
-	node := &BVHNode{}
+	n := end - start
+	if n == 0 {
+		return &BVHNode{}
+	}
 
-	objectSpan := end - start
+	// Pre-compute all bounding boxes and centroids in parallel
+	primitives := make([]bvhPrimitive, n)
 
-	// Calculate bounding box for all objects in this range
-	var bbox AABB
-	for i := start; i < end; i++ {
-		if i == start {
-			bbox = objects[i].BoundingBox()
-		} else {
-			bbox = NewAABBFromBoxes(bbox, objects[i].BoundingBox())
+	// Parallel bbox computation for large sets
+	if n > 10000 {
+		numWorkers := runtime.NumCPU()
+		chunkSize := (n + numWorkers - 1) / numWorkers
+		var wg sync.WaitGroup
+
+		for w := 0; w < numWorkers; w++ {
+			wg.Add(1)
+			startIdx := w * chunkSize
+			endIdx := startIdx + chunkSize
+			if endIdx > n {
+				endIdx = n
+			}
+			go func(s, e int) {
+				defer wg.Done()
+				for i := s; i < e; i++ {
+					bbox := objects[start+i].BoundingBox()
+					primitives[i] = bvhPrimitive{
+						index:    start + i,
+						bbox:     bbox,
+						centroid: bbox.Centroid(),
+					}
+				}
+			}(startIdx, endIdx)
+		}
+		wg.Wait()
+	} else {
+		for i := 0; i < n; i++ {
+			bbox := objects[start+i].BoundingBox()
+			primitives[i] = bvhPrimitive{
+				index:    start + i,
+				bbox:     bbox,
+				centroid: bbox.Centroid(),
+			}
 		}
 	}
 
-	// Choose axis with longest extent (better than random for meshes)
-	axis := bbox.LongestAxis()
+	return buildBVHNode(objects, primitives, runtime.NumCPU())
+}
 
-	// Create comparator function for sorting
-	comparator := boxCompare(axis)
+func buildBVHNode(objects []Hittable, primitives []bvhPrimitive, parallelDepth int) *BVHNode {
+	n := len(primitives)
 
-	switch objectSpan {
-	case 1:
-		// Only one object - both children point to same object
-		node.left = objects[start]
-		node.right = objects[start]
-	case 2:
-		// Two objects - assign one to each child
-		if comparator(objects[start], objects[start+1]) {
-			node.left = objects[start]
-			node.right = objects[start+1]
-		} else {
-			node.left = objects[start+1]
-			node.right = objects[start]
+	// Compute bounds of all primitives
+	bounds := primitives[0].bbox
+	centroidBounds := NewAABBFromPoints(primitives[0].centroid, primitives[0].centroid)
+	for i := 1; i < n; i++ {
+		bounds = NewAABBFromBoxes(bounds, primitives[i].bbox)
+		centroidBounds = NewAABBFromBoxes(centroidBounds,
+			NewAABBFromPoints(primitives[i].centroid, primitives[i].centroid))
+	}
+
+	// Create leaf for small sets
+	if n <= bvhLeafMaxSize {
+		leaf := &BVHLeaf{
+			objects: make([]Hittable, n),
+			bbox:    bounds,
 		}
-	default:
-		// More than two objects - sort and recursively split
-		sort.Slice(objects[start:end], func(i, j int) bool {
-			return comparator(objects[start+i], objects[start+j])
-		})
+		for i, p := range primitives {
+			leaf.objects[i] = objects[p.index]
+		}
+		return &BVHNode{left: leaf, right: leaf, bbox: bounds}
+	}
 
-		mid := start + objectSpan/2
+	// Choose split axis based on centroid spread
+	axis := centroidBounds.LongestAxis()
 
-		// Use parallel construction for large subtrees
-		if allowParallel && objectSpan >= bvhParallelThreshold {
+	// Sort by centroid on chosen axis (faster than full bbox sort)
+	sort.Slice(primitives, func(i, j int) bool {
+		switch axis {
+		case 0:
+			return primitives[i].centroid.X < primitives[j].centroid.X
+		case 1:
+			return primitives[i].centroid.Y < primitives[j].centroid.Y
+		default:
+			return primitives[i].centroid.Z < primitives[j].centroid.Z
+		}
+	})
+
+	mid := n / 2
+
+	node := &BVHNode{bbox: bounds}
+
+	// Parallel construction for large subtrees
+	if parallelDepth > 0 && n >= bvhParallelThreshold {
+		// Try to acquire semaphore slots BEFORE spawning goroutines
+		// This prevents deadlock - if we can't get slots, go sequential
+		gotLeft := false
+		gotRight := false
+
+		select {
+		case bvhSemaphore <- struct{}{}:
+			gotLeft = true
+		default:
+		}
+
+		select {
+		case bvhSemaphore <- struct{}{}:
+			gotRight = true
+		default:
+		}
+
+		if gotLeft && gotRight {
+			// Both slots acquired - run in parallel
 			var wg sync.WaitGroup
 			wg.Add(2)
 
 			go func() {
 				defer wg.Done()
-				node.left = newBVHNodeParallel(objects, start, mid, true)
+				defer func() { <-bvhSemaphore }()
+				node.left = buildBVHNode(objects, primitives[:mid], parallelDepth-1)
 			}()
 
 			go func() {
 				defer wg.Done()
-				node.right = newBVHNodeParallel(objects, mid, end, true)
+				defer func() { <-bvhSemaphore }()
+				node.right = buildBVHNode(objects, primitives[mid:], parallelDepth-1)
 			}()
 
 			wg.Wait()
 		} else {
-			// Sequential construction for smaller subtrees
-			node.left = newBVHNodeParallel(objects, start, mid, false)
-			node.right = newBVHNodeParallel(objects, mid, end, false)
+			// Release any acquired slots and run sequentially
+			if gotLeft {
+				<-bvhSemaphore
+			}
+			if gotRight {
+				<-bvhSemaphore
+			}
+			node.left = buildBVHNode(objects, primitives[:mid], 0)
+			node.right = buildBVHNode(objects, primitives[mid:], 0)
 		}
+	} else {
+		node.left = buildBVHNode(objects, primitives[:mid], 0)
+		node.right = buildBVHNode(objects, primitives[mid:], 0)
 	}
-
-	// Compute bounding box that encompasses both children
-	node.bbox = NewAABBFromBoxes(node.left.BoundingBox(), node.right.BoundingBox())
 
 	return node
 }

@@ -137,3 +137,12 @@ func (box AABB) LongestAxis() int {
 	}
 	return 2
 }
+
+// Centroid returns the center point of the bounding box
+func (box AABB) Centroid() Vec3 {
+	return Vec3{
+		X: (box.X.Min + box.X.Max) * 0.5,
+		Y: (box.Y.Min + box.Y.Max) * 0.5,
+		Z: (box.Z.Min + box.Z.Max) * 0.5,
+	}
+}
