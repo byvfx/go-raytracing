@@ -21,8 +21,10 @@ Currently migrating from a feature-complete Go raytracer to a production Rust ar
 
 - Core math library port
 - Scene graph with instancing
-- USD authoring via C++ shim
-- Qt/egui UI integration
+- egui UI with 3D viewport (viewport = framebuffer)
+- Node-based scatter system for instance placement
+- USD authoring via C++ shim (optional)
+- Qt migration path for production UI
 
 ## Repository Structure
 
@@ -57,17 +59,18 @@ When you spin up the standalone Rust workspace (see `bif_poc_guide.md` Step 1)
 bif/
 ├── README.md           # Top-level vision & roadmap
 ├── Cargo.toml          # Rust workspace manifest
-├── CMakeLists.txt      # Qt build (optional)
+├── CMakeLists.txt      # Qt build (post-PoC)
 ├── cpp/                # C++ components (USD/MaterialX bridges)
 │   └── shims/
 │       └── usd_shim/
 ├── crates/
-│   ├── app/            # Main application (Step 7)
+│   ├── app/            # Main application + egui UI (Step 7)
 │   ├── scene/          # Scene graph & instances (Step 2)
 │   ├── renderer/       # CPU path tracer (Step 5)
-│   ├── viewport/       # wgpu preview renderer (Step 6)
+│   ├── viewport/       # wgpu viewport = framebuffer (Step 6)
+│   ├── scatter/        # Point generation & instance placement (Step 3b)
 │   ├── io_gltf/        # glTF loader (Step 3)
-│   └── usd_bridge/     # USD FFI wrapper (Step 4)
+│   └── usd_bridge/     # USD FFI wrapper (Step 4, optional)
 └── docs/
     ├── bif_poc_guide.md
     ├── bif_migration_guide.md
@@ -75,7 +78,7 @@ bif/
     └── rust_port_learning_plan.md
 ```
 
-> **Note:** A `framebuffer` crate for shared accumulation may be added post-PoC when integrating progressive refinement (see `rust_port_learning_plan.md` Stage 4).
+> **Viewport = Framebuffer**: The `viewport` crate displays render output directly. There is no separate \"Render View\"—the 3D viewport IS where rendering happens. Samples accumulate in-place as you work.
 
 Use `bif_poc_guide.md` for bring-up details and `rust_port_learning_plan.md` for the staged learning workflow that ties back to the checklist.
 
@@ -134,33 +137,64 @@ cargo run --release --bin bif
 - [ ] Basic scene representation
 - [ ] Simple path tracer
 
-### Phase 2: Scene Assembly
+### Phase 2: UI & Viewport (PoC)
+
+- [ ] egui window with wgpu backend
+- [ ] 3D viewport that IS the framebuffer
+- [ ] Scene hierarchy panel
+- [ ] Properties panel (transforms, materials)
+- [ ] Scatter controls panel
+
+### Phase 3: Scatter System
+
+- [ ] Surface point sampling
+- [ ] Instance placement from points
+- [ ] Simple node editor (egui_node_graph)
+- [ ] Filter nodes (slope, height, random)
+- [ ] Real-time scatter preview
+
+### Phase 4: Scene Assembly
 
 - [ ] USD authoring support
 - [ ] Instance management
 - [ ] Layer system
-- [ ] Procedural scattering
+- [ ] Save/load scatter presets
 
-### Phase 3: Production Renderer
+### Phase 5: Production Renderer
 
 - [ ] Port full material system
 - [ ] Texture pipeline (TX/OIIO)
-- [ ] Progressive refinement
+- [ ] Progressive refinement in viewport
 - [ ] Denoising (OIDN)
 
-### Phase 4: User Interface
+### Phase 6: Qt Migration (Production UI)
 
-- [ ] egui prototype UI
-- [ ] Qt production interface
-- [ ] Viewport integration
-- [ ] Node graph editor
+- [ ] Qt 6 / QML frontend via cxx-qt
+- [ ] Native Qt viewport with embedded wgpu
+- [ ] Professional docking/panels
+- [ ] Qt-based node editor
+- [ ] Keyboard shortcuts and polish
 
-### Phase 5: Advanced Features
+### Phase 7: Advanced Features
 
 - [ ] GPU acceleration (wgpu/OptiX)
 - [ ] Hydra render delegate
 - [ ] Python scripting
 - [ ] Network rendering
+
+## UI Development Path
+
+**PoC Phase (egui):**
+- Pure Rust, immediate-mode UI
+- Fast iteration, single language
+- `egui_node_graph` for visual scatter editing
+- Good enough for workflow validation
+
+**Production Phase (Qt 6):**
+- Professional look and feel
+- Mature node editor libraries
+- Dockable panels, keyboard shortcuts
+- Industry-standard UX patterns
 
 ## Design Principles
 

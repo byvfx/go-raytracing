@@ -54,12 +54,16 @@ This proof of concept will port these features to Rust while adding BIF's scene 
 ```
 
 ## Week 1 Proof of Concept Goal
+
 Build a minimal scene assembler that can:
+- **egui Interface**: Basic UI with scene hierarchy, properties panel, and scatter controls
+- **3D Viewport = Framebuffer**: Render directly into the viewport texture (no separate render view)
 - Load a glTF file as a prototype
+- **Scatter System**: Create points on a surface, then place instances at those points
 - Create 10,000 instances with random transforms  
 - Export to USD with PointInstancer
 - Render with a basic CPU path tracer
-- Display results in a viewport (egui/wgpu for quick start, Qt native for production)
+- Display results live in the viewport as samples accumulate
 
 ## Prerequisites
 
@@ -85,17 +89,18 @@ bif/
 ├─ CMakeLists.txt      # Top-level build (if using Qt)
 ├─ Cargo.toml          # Rust workspace
 ├─ cpp/                # C++ components (optional for PoC)
-│  ├─ ui/              # Qt application 
+│  ├─ ui/              # Qt application (post-PoC)
 │  ├─ bridge/          # cxx-qt glue
 │  └─ shims/
 │     └─ usd_shim/     # Minimal USD C ABI
 ├─ crates/
-│  ├─ app/             # Main application / orchestration (Step 7)
+│  ├─ app/             # Main application / egui UI (Step 7)
 │  ├─ scene/           # Scene graph, instances, layers (Step 2)
 │  ├─ renderer/        # CPU path tracer core (Step 5)
-│  ├─ viewport/        # wgpu preview renderer (Step 6)
+│  ├─ viewport/        # wgpu viewport = framebuffer (Step 6)
+│  ├─ scatter/         # Point generation & instance placement (Step 2b)
 │  ├─ io_gltf/         # glTF loader (Step 3)
-│  └─ usd_bridge/      # USD FFI wrapper (Step 4)
+│  └─ usd_bridge/      # USD FFI wrapper (Step 4, optional)
 ├─ docs/               # Porting and architecture notes
 │  ├─ bif_poc_guide.md
 │  ├─ bif_migration_guide.md
@@ -104,15 +109,49 @@ bif/
 └─ assets/             # Test assets
 ```
 
-> **Note:** A `framebuffer` crate for shared accumulation may be added post-PoC when integrating progressive refinement (see `rust_port_learning_plan.md` Stage 4).
+> **Viewport = Framebuffer**: The `viewport` crate displays the render output directly. There is no separate "Render View" window—the 3D viewport IS where rendering happens.
 
 ## Build Paths
 
 ### Path A: Pure Rust with egui (Recommended for PoC)
+
 Fast iteration, single language, minimal dependencies. Use this for Week 1.
 
+**egui gives you:**
+- Immediate-mode UI (easy to prototype)
+- Built-in panels, trees, sliders, buttons
+- `egui_node_graph` crate for visual node editing
+- Native wgpu integration for the viewport
+- Cross-platform without extra dependencies
+
+**PoC UI Layout:**
+```text
++------------------+------------------------+------------------+
+|  Scene Hierarchy |                        |   Properties     |
+|  [Tree View]     |      3D Viewport       |   [Transform]    |
+|                  |    (= Framebuffer)     |   [Material]     |
+|  - Ground        |                        |                  |
+|  - Tree Proto    |   [Render happening    |------------------|  
+|  - Instances     |    directly here]      |  Scatter Controls|
+|    - Tree_001    |                        |   Density: ===   |
+|    - Tree_002    |                        |   Scale: ====    |
+|    ...           |                        |   Seed: 42       |
++------------------+------------------------+------------------+
+|                      Node Editor (optional)                   |
+|  [Surface] --> [Sample Points] --> [Filter] --> [Instances]  |
++---------------------------------------------------------------+
+```
+
 ### Path B: Qt Frontend + Rust Engine (Production)
+
 Professional UI with docking, better viewport integration. Add after PoC validates core.
+
+**Qt gives you:**
+- Professional docking/tabbing system
+- Native look and feel
+- Mature node editor libraries (QtNodes, QNodeEditor)
+- Industry-standard UX patterns
+- Better accessibility support
 
 ---
 
@@ -134,11 +173,11 @@ members = [
     "crates/scene", 
     "crates/renderer",
     "crates/viewport",
+    "crates/scatter",
     "crates/io_gltf",
     "crates/usd_bridge",
 ]
 resolver = "2"
-# Note: framebuffer crate deferred to post-PoC (see rust_port_learning_plan.md Stage 4)
 
 [workspace.package]
 version = "0.1.0"
@@ -162,6 +201,7 @@ winit = "0.30"
 egui = "0.29"
 egui-wgpu = "0.29"
 egui-winit = "0.29"
+egui_node_graph = "0.4"         # Node-based visual editor
 
 # File I/O
 gltf = "1.4"
@@ -470,6 +510,275 @@ fn calculate_bounds(vertices: &[Vec3]) -> AABB {
     
     AABB { min, max }
 }
+```
+
+## Step 3b: Scatter System
+
+The scatter system lets users generate points on a surface, then place instances at those points. This is a core workflow for environment art (placing trees, rocks, grass, etc.).
+
+### 3b.1 Create `crates/scatter/Cargo.toml`
+
+```toml
+[package]
+name = "scatter"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+scene = { path = "../scene" }
+glam.workspace = true
+rand.workspace = true
+rayon.workspace = true
+```
+
+### 3b.2 Create `crates/scatter/src/lib.rs`
+
+```rust
+use glam::{Mat4, Quat, Vec3};
+use rand::{Rng, SeedableRng};
+use rand::rngs::StdRng;
+use scene::{Instance, Mesh, Scene, Transform};
+use std::sync::Arc;
+
+/// A point on a surface with position and normal
+#[derive(Debug, Clone, Copy)]
+pub struct SurfacePoint {
+    pub position: Vec3,
+    pub normal: Vec3,
+    pub uv: [f32; 2],
+}
+
+/// Parameters for point generation
+#[derive(Debug, Clone)]
+pub struct SampleParams {
+    pub count: usize,
+    pub seed: u64,
+    pub min_distance: f32,  // Poisson disk sampling (0 = pure random)
+}
+
+/// Parameters for instance placement
+#[derive(Debug, Clone)]
+pub struct PlacementParams {
+    pub prototype_id: usize,
+    pub seed: u64,
+    pub scale_min: f32,
+    pub scale_max: f32,
+    pub rotation_min: f32,  // Y-axis rotation in radians
+    pub rotation_max: f32,
+    pub align_to_normal: bool,
+    pub normal_blend: f32,  // 0 = up, 1 = surface normal
+}
+
+impl Default for PlacementParams {
+    fn default() -> Self {
+        Self {
+            prototype_id: 0,
+            seed: 42,
+            scale_min: 0.8,
+            scale_max: 1.2,
+            rotation_min: 0.0,
+            rotation_max: std::f32::consts::TAU,
+            align_to_normal: false,
+            normal_blend: 0.0,
+        }
+    }
+}
+
+/// Generate random points on a mesh surface
+pub fn sample_surface(mesh: &Mesh, params: &SampleParams) -> Vec<SurfacePoint> {
+    let mut rng = StdRng::seed_from_u64(params.seed);
+    let mut points = Vec::with_capacity(params.count);
+    
+    // Calculate triangle areas for weighted sampling
+    let triangles: Vec<(usize, f32)> = (0..mesh.indices.len() / 3)
+        .map(|i| {
+            let i0 = mesh.indices[i * 3] as usize;
+            let i1 = mesh.indices[i * 3 + 1] as usize;
+            let i2 = mesh.indices[i * 3 + 2] as usize;
+            
+            let v0 = mesh.vertices[i0];
+            let v1 = mesh.vertices[i1];
+            let v2 = mesh.vertices[i2];
+            
+            let edge1 = v1 - v0;
+            let edge2 = v2 - v0;
+            let area = edge1.cross(edge2).length() * 0.5;
+            
+            (i, area)
+        })
+        .collect();
+    
+    let total_area: f32 = triangles.iter().map(|(_, a)| a).sum();
+    
+    for _ in 0..params.count {
+        // Pick a triangle weighted by area
+        let target_area = rng.gen::<f32>() * total_area;
+        let mut cumulative = 0.0;
+        let mut tri_idx = 0;
+        
+        for (idx, area) in &triangles {
+            cumulative += area;
+            if cumulative >= target_area {
+                tri_idx = *idx;
+                break;
+            }
+        }
+        
+        // Sample point within triangle using barycentric coordinates
+        let i0 = mesh.indices[tri_idx * 3] as usize;
+        let i1 = mesh.indices[tri_idx * 3 + 1] as usize;
+        let i2 = mesh.indices[tri_idx * 3 + 2] as usize;
+        
+        let v0 = mesh.vertices[i0];
+        let v1 = mesh.vertices[i1];
+        let v2 = mesh.vertices[i2];
+        
+        // Random barycentric coordinates
+        let u: f32 = rng.gen();
+        let v: f32 = rng.gen();
+        let (u, v) = if u + v > 1.0 { (1.0 - u, 1.0 - v) } else { (u, v) };
+        let w = 1.0 - u - v;
+        
+        let position = v0 * w + v1 * u + v2 * v;
+        
+        // Interpolate normal
+        let n0 = mesh.normals.get(i0).copied().unwrap_or(Vec3::Y);
+        let n1 = mesh.normals.get(i1).copied().unwrap_or(Vec3::Y);
+        let n2 = mesh.normals.get(i2).copied().unwrap_or(Vec3::Y);
+        let normal = (n0 * w + n1 * u + n2 * v).normalize();
+        
+        // Interpolate UVs
+        let uv0 = mesh.uvs.get(i0).copied().unwrap_or([0.0, 0.0]);
+        let uv1 = mesh.uvs.get(i1).copied().unwrap_or([0.0, 0.0]);
+        let uv2 = mesh.uvs.get(i2).copied().unwrap_or([0.0, 0.0]);
+        let uv = [
+            uv0[0] * w + uv1[0] * u + uv2[0] * v,
+            uv0[1] * w + uv1[1] * u + uv2[1] * v,
+        ];
+        
+        points.push(SurfacePoint { position, normal, uv });
+    }
+    
+    points
+}
+
+/// Place instances at surface points
+pub fn place_instances(
+    scene: &mut Scene,
+    points: &[SurfacePoint],
+    params: &PlacementParams,
+) -> Vec<u32> {
+    let mut rng = StdRng::seed_from_u64(params.seed);
+    let mut instance_ids = Vec::with_capacity(points.len());
+    
+    for point in points {
+        let scale = rng.gen_range(params.scale_min..params.scale_max);
+        let rotation_y = rng.gen_range(params.rotation_min..params.rotation_max);
+        
+        // Calculate orientation
+        let up = if params.align_to_normal {
+            Vec3::Y.lerp(point.normal, params.normal_blend).normalize()
+        } else {
+            Vec3::Y
+        };
+        
+        // Build rotation from up vector and Y rotation
+        let base_rotation = if up != Vec3::Y {
+            Quat::from_rotation_arc(Vec3::Y, up)
+        } else {
+            Quat::IDENTITY
+        };
+        let y_rotation = Quat::from_rotation_y(rotation_y);
+        let rotation = base_rotation * y_rotation;
+        
+        let transform = Transform {
+            matrix: Mat4::from_scale_rotation_translation(
+                Vec3::splat(scale),
+                rotation,
+                point.position,
+            ),
+        };
+        
+        let id = scene.add_instance(params.prototype_id, transform);
+        instance_ids.push(id);
+    }
+    
+    instance_ids
+}
+
+/// Filter points based on criteria
+pub fn filter_points(
+    points: &[SurfacePoint],
+    min_height: Option<f32>,
+    max_height: Option<f32>,
+    max_slope: Option<f32>,  // In degrees
+    keep_probability: f32,
+    seed: u64,
+) -> Vec<SurfacePoint> {
+    let mut rng = StdRng::seed_from_u64(seed);
+    
+    points.iter()
+        .filter(|p| {
+            // Height filter
+            if let Some(min) = min_height {
+                if p.position.y < min { return false; }
+            }
+            if let Some(max) = max_height {
+                if p.position.y > max { return false; }
+            }
+            
+            // Slope filter (angle from vertical)
+            if let Some(max_deg) = max_slope {
+                let slope_rad = p.normal.angle_between(Vec3::Y);
+                if slope_rad > max_deg.to_radians() { return false; }
+            }
+            
+            // Random cull
+            if rng.gen::<f32>() > keep_probability {
+                return false;
+            }
+            
+            true
+        })
+        .copied()
+        .collect()
+}
+```
+
+### 3b.3 Example Usage
+
+```rust
+use scatter::{sample_surface, place_instances, filter_points, SampleParams, PlacementParams};
+
+// Load a ground plane mesh
+let ground = load_ground_mesh();
+
+// Generate 1000 surface points
+let points = sample_surface(&ground, &SampleParams {
+    count: 1000,
+    seed: 42,
+    min_distance: 0.0,
+});
+
+// Filter: only flat areas, 50% random cull
+let filtered = filter_points(
+    &points,
+    Some(0.0),   // min_height
+    Some(100.0), // max_height
+    Some(30.0),  // max_slope (degrees)
+    0.5,         // keep 50%
+    123,         // filter seed
+);
+
+// Place tree instances
+let tree_ids = place_instances(&mut scene, &filtered, &PlacementParams {
+    prototype_id: tree_proto_id,
+    scale_min: 0.7,
+    scale_max: 1.3,
+    ..Default::default()
+});
+
+println!("Scattered {} trees", tree_ids.len());
 ```
 
 ## Step 4: USD Bridge (FFI)

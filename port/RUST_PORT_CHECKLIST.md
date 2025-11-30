@@ -11,30 +11,31 @@
 ```toml
 [dependencies]
 # Math and vectors
-glam = "0.24"              # SIMD-optimized vector math (replaces Vec3)
+glam = "0.29"              # SIMD-optimized vector math (replaces Vec3)
 
 # Parallelism
-rayon = "1.8"              # Data parallelism (replaces worker pool)
+rayon = "1.10"             # Data parallelism (replaces worker pool)
 
 # Image I/O
-image = "0.24"             # PNG/JPG encoding and decoding
+image = "0.25"             # PNG/JPG encoding and decoding
 
 # 3D file loading
-obj = "0.10"               # OBJ file parsing
-# OR
-tobj = "4.0"               # Alternative OBJ parser
+tobj = "4.0"               # OBJ file parsing (preferred over obj crate)
 
 # Random numbers
 rand = "0.8"               # RNG (replaces Go's math/rand)
 
 # Optional for interactive rendering
-winit = "0.29"             # Window creation
-wgpu = "0.18"              # GPU rendering for display
+winit = "0.30"             # Window creation
+wgpu = "23.0"              # GPU rendering for display
 pollster = "0.3"           # Async executor
 
 # Utilities
 anyhow = "1.0"             # Error handling
+thiserror = "2.0"          # Custom error types
 ```
+
+> **Note:** Versions updated to match `bif_poc_guide.md` workspace dependencies (as of Nov 2025).
 
 ## How to Use This Checklist
 
@@ -143,6 +144,19 @@ trait Texture: Send + Sync {
 - [ ] Implement `Hittable` for `Plane`
 - [ ] Infinite plane intersection
 
+### 11b. Compound Primitives
+
+- [ ] `Box` primitive (6 quads)
+- [ ] `Pyramid` primitive (base quad + 4 triangles)
+- [ ] `Circle`/`Disk` primitive
+
+### 11c. Transform System
+
+- [ ] `Translate` wrapper with AABB update
+- [ ] `RotateX`, `RotateY`, `RotateZ` wrappers
+- [ ] `Scale` (non-uniform) with inverse factor caching
+- [ ] `Transform` builder (SRT ordering: Scale → Rotate → Translate)
+
 ## Acceleration Structures
 
 ### 12. BVH
@@ -164,6 +178,11 @@ enum BVHNode {
 - [ ] Recursive construction with longest axis heuristic
 - [ ] Consider SAH (Surface Area Heuristic) for production
 - [ ] Implement `Hittable` for `BVHNode`
+- [ ] `BVHLeaf` for multiple primitives per leaf (cache locality)
+- [ ] Parallel BVH construction with `rayon` (see Go's bvhSemaphore pattern)
+- [ ] Pre-compute centroids for faster sorting
+- [ ] Configurable leaf size (Go uses `bvhLeafMaxSize = 4`)
+- [ ] Parallel threshold (Go uses `bvhParallelThreshold = 8192`)
 
 ## Materials
 
@@ -194,10 +213,14 @@ enum BVHNode {
 
 ### 17. Camera
 
-- [ ] Builder pattern for configuration
+- [ ] Builder pattern for configuration (Go's `NewCameraBuilder()`)
 - [ ] Lens parameters (FOV, focus, aperture)
-- [ ] Motion blur support
-- [ ] Ray generation with DOF
+- [ ] Motion blur support (camera position interpolation)
+- [ ] Ray generation with DOF (defocus disk sampling)
+- [ ] Free camera mode (forward vector instead of look-at)
+- [ ] Camera presets: `QuickPreview`, `StandardQuality`, `HighQuality`
+- [ ] Background color options (solid, sky gradient)
+- [ ] Light collection for NEE (`AddLight()` method)
 
 ### 18. Bucket Renderer
 
@@ -211,16 +234,23 @@ struct BucketRenderer {
 ```
 
 - [ ] Parallel bucket rendering with `rayon`
-- [ ] Spiral bucket ordering
-- [ ] Progressive multi-pass rendering
-- [ ] Thread-safe framebuffer updates
+- [ ] Spiral bucket ordering (V-Ray style, center-out)
+- [ ] Progressive multi-pass rendering (Preview → Refine → Final)
+- [ ] Thread-safe framebuffer updates with `Mutex`
+- [ ] Live viewport display with `egui`/`ebiten` equivalent
+- [ ] Configurable pass quality (SPP/depth per pass)
+- [ ] Per-bucket temp buffer to minimize lock contention
+- [ ] Atomic counters for progress tracking
 
 ### 19. MIS Implementation
 
-- [ ] Light sampling
+- [ ] Light sampling (NEE - Next Event Estimation)
 - [ ] BRDF sampling
-- [ ] Balance heuristic weighting
+- [ ] Balance heuristic weighting: `w = pdf_light / (pdf_light + pdf_brdf)`
 - [ ] PDF evaluation infrastructure
+- [ ] `PDFEvaluator` trait: `fn pdf(wi, wo, normal) -> f64`
+- [ ] `MaterialInfo` trait for material properties (is_specular, is_emissive, can_use_nee)
+- [ ] Firefly clamping (max component = 20.0)
 
 ## File I/O
 
@@ -286,11 +316,53 @@ struct BucketRenderer {
 - [ ] Material library
 - [ ] Camera presets
 
-### 29. UI (Optional)
+### 29. UI (Required for PoC)
 
-- [ ] Real-time preview with accumulation
-- [ ] Interactive camera controls
-- [ ] Render settings UI
+#### egui Phase (PoC)
+- [ ] Basic egui + wgpu window setup
+- [ ] 3D viewport panel (wgpu texture display)
+- [ ] Scene hierarchy tree view
+- [ ] Properties panel (transform editor, material selector)
+- [ ] Scatter controls panel (density, scale variance, seed)
+- [ ] Render progress overlay (samples, time, pass)
+- [ ] Camera controls (orbit, pan, zoom via mouse)
+
+#### Node Editor (PoC or Early Production)
+- [ ] Integrate `egui_node_graph` or similar crate
+- [ ] Surface Input node (mesh selection)
+- [ ] Point Sampler node (uniform, density-based)
+- [ ] Filter node (slope, height, random cull)
+- [ ] Instance Placer node (prototype, scale/rotation variance)
+- [ ] Real-time preview of scatter points in viewport
+- [ ] Node graph serialization (save/load presets)
+
+#### Qt Migration (Production)
+- [ ] Qt 6 / QML frontend via `cxx-qt`
+- [ ] Native Qt viewport with embedded wgpu
+- [ ] Qt-based node editor (QGraphicsScene or QtNodes)
+- [ ] Dockable panels layout
+- [ ] Keyboard shortcuts and professional UX
+- [ ] Theme/styling system
+
+### 29b. Viewport as Framebuffer
+
+- [ ] Renderer writes to wgpu texture directly
+- [ ] Viewport displays same texture (no copy)
+- [ ] UI overlays render on top (gizmos, selection)
+- [ ] Mode switching: interactive ↔ progressive ↔ final
+- [ ] Snapshot/pin current render for comparison
+- [ ] Progress bar and sample counter in viewport
+
+### 29c. Scatter System (`crates/scatter/`)
+
+- [ ] Surface point generation (uniform distribution)
+- [ ] Density map support (texture-driven density)
+- [ ] Point filtering (slope threshold, height range)
+- [ ] Instance placement from point cloud
+- [ ] Scale/rotation randomization with seed control
+- [ ] Preview mode (show points before instancing)
+- [ ] Batch processing for large point counts
+- [ ] Integration with scene graph (creates instances)
 
 ## Code Quality
 

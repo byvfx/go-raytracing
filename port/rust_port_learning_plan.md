@@ -4,20 +4,31 @@ This document reorganizes the existing porting material in `port/` into a step-b
 
 ## Quick Reference for AI Assistants
 
-**What this project is:** Porting a Go raytracer (`rt/` folder) to Rust, while adding scene assembly features (instancing, USD export, viewport).
+**What this project is:** Porting a Go raytracer (`rt/` folder) to Rust, while adding scene assembly features (instancing, USD export, viewport) and a user-friendly UI for interactive scene building.
 
 **Key files to read first:**
 1. `rt/vec3.go`, `rt/ray.go`, `rt/material.go` — Go reference implementations
 2. `port/bif_poc_guide.md` — Step-by-step Rust code to generate
 3. `port/RUST_PORT_CHECKLIST.md` — Detailed task list
 
-**Crates to create (PoC):** `app`, `scene`, `renderer`, `viewport`, `io_gltf`, `usd_bridge` (USD is optional)
+**Crates to create (PoC):** `app`, `scene`, `renderer`, `viewport`, `scatter`, `io_gltf`, `usd_bridge` (USD is optional)
+
+**UI Development Path:**
+1. **PoC Phase**: `egui` for rapid prototyping (pure Rust, immediate mode)
+2. **Production Phase**: Migrate to Qt 6 for professional UI (docking, node editor, better viewport integration)
+
+**Viewport Strategy:** The 3D viewport IS the framebuffer. Renders write directly to the viewport texture—no separate "render view" vs "viewport" distinction.
 
 **Do NOT create:** A separate `crates/math` crate — use `glam` directly for the PoC.
 
 **Two paths:**
 1. **PoC Path** (fast): Follow `bif_poc_guide.md` Steps 1-7 to get a working demo
 2. **Learning Path** (thorough): Follow Stages 0-7 below, implementing custom types before using libraries
+
+**Key PoC Features:**
+- 3D viewport that doubles as the render framebuffer
+- Simple node-based scatter system (surface points → instance placement)
+- egui panels for scene hierarchy, properties, and scatter controls
 
 ---
 
@@ -51,10 +62,11 @@ Each stage references the checklist sections (`RUST_PORT_CHECKLIST.md`) and migr
 - **Inputs**: `bif_poc_guide.md` Step 1, `port/README.md` prerequisites.
 - **Tasks**:
   - Create the `bif/` directory as a sibling to `go-raytracing/` (or inside it as `go-raytracing/bif/`).
-  - Recreate the minimal Cargo workspace per PoC guide: `app`, `scene`, `renderer`, `viewport`, `io_gltf`, and optionally `usd_bridge`.
+  - Recreate the minimal Cargo workspace per PoC guide: `app`, `scene`, `renderer`, `viewport`, `scatter`, `io_gltf`, and optionally `usd_bridge`.
   - Configure toolchain (`rustup`, `cargo fmt/clippy`, VS Code rust-analyzer).
   - Copy small Go fixtures (e.g., unit test scenes) into `assets/` for later comparisons.
-- **Done when**: `cargo check` succeeds and a `tests/smoke.rs` (even empty) runs.
+  - Set up basic egui window with wgpu backend (this will become the viewport).
+- **Done when**: `cargo check` succeeds, a `tests/smoke.rs` runs, and an empty egui window opens.
 
 > **For AI Assistants**: The PoC does NOT create a `crates/math` crate—it uses `glam` directly. See `bif_poc_guide.md` for the exact crate list.
 
@@ -100,50 +112,87 @@ Each stage references the checklist sections (`RUST_PORT_CHECKLIST.md`) and migr
   - Port BVH builder using `Vec<Arc<dyn Hittable>>`; add property tests for bounding boxes.
   - Implement camera builder with DOF/motion blur parity.
   - Build a minimal renderer crate that can render a static scene using scanline first, then upgrade to bucket rendering.
-  - Design a CPU framebuffer module (image-sized accumulation buffer + tone mapping) that can back both offline exports and an on-screen viewport surface. This becomes a separate `crates/framebuffer` crate post-PoC when integrating progressive refinement.
-- **Validation**: Render `rt/scenes/weekend_final.go` equivalent at 400×225, compare sample counts/time vs Go; record numbers in devlog and check off Checklist §§12,17,18.
+  - **Viewport-as-Framebuffer**: The renderer writes directly to a wgpu texture that egui displays. No separate "render window"—the viewport IS the framebuffer. This unifies interactive preview and final render.
+  - Implement progressive refinement: low-SPP preview while moving camera, accumulate samples when idle.
+- **Validation**: Render `rt/scenes/weekend_final.go` equivalent at 400×225 in the viewport, compare sample counts/time vs Go; record numbers in devlog and check off Checklist §§12,17,18.
 
-> **Note:** The PoC (`bif_poc_guide.md`) defers the `framebuffer` crate to keep the initial workspace lean. Add it here when you need shared accumulation between viewport and offline rendering.
+> **Viewport = Framebuffer**: Unlike traditional DCCs with separate render views, BIF renders directly into the 3D viewport. When you orbit the camera, you see low-quality preview; when you stop, samples accumulate in-place. This is the "continuous rendering" philosophy from `bif_gpu_rendering_architecture.md`.
 
-### Stage 5 – Scene Graph & Instancing (1-2 weeks)
+### Stage 5 – Scene Graph, Instancing & Scatter System (1-2 weeks)
 
-- **Checklist refs**: Portions of Sections 18-21 + Code Organization §32.
-- **Docs**: `port/README.md` “Phase 2: Scene Assembly”, `bif_poc_guide.md` Steps 2-4, devlog ownership notes.
-- **Learning focus**: `Arc<dyn Trait>` management, data-oriented layout, serialization.
+- **Checklist refs**: Portions of Sections 18-21 + Code Organization §32 + new Scatter section.
+- **Docs**: `port/README.md` "Phase 2: Scene Assembly", `bif_poc_guide.md` Steps 2-4, devlog ownership notes.
+- **Learning focus**: `Arc<dyn Trait>` management, data-oriented layout, serialization, procedural generation.
 - **Tasks**:
   - Implement a `scene` crate that hosts prototypes, layers, and instancer data structures.
   - Add importers (OBJ/tobj) and tie them into BVH construction.
   - Author a USD stub or JSON scene file to validate instancing logic before touching real USD.
-- **Validation**: CLI that instantiates 10k spheres and reports memory/time (targets from README). Document metrics.
+  - **Scatter System** (`crates/scatter/`):
+    - Surface point sampling: generate points on mesh surfaces (uniform, density-mapped)
+    - Instance placement: scatter prototype meshes at generated points
+    - Simple node graph or parameter UI in egui for controlling scatter (density, scale variance, rotation randomness)
+    - Real-time viewport preview of scatter points before committing
+- **Validation**: CLI that instantiates 10k spheres and reports memory/time (targets from README). Scatter 1000 trees on a ground plane via the UI. Document metrics.
 
-### Stage 6 – USD + Tooling Integration (2+ weeks)
+### Stage 6 – USD, UI Polish & Node Editor (2+ weeks)
 
-- **Checklist refs**: Migration Strategy Phases 6-8, Sections 20-24, Testing §§25-26.
+- **Checklist refs**: Migration Strategy Phases 6-8, Sections 20-24, Testing §§25-26, UI sections.
 - **Docs**: `bif_poc_guide.md` Step 4, PoC Step 8 (build & run), GPU architecture doc for eventual viewport coupling.
-- **Learning focus**: FFI (`cxx`, `usd_bridge`), error handling with `anyhow/thiserror`, integration tests.
+- **Learning focus**: FFI (`cxx`, `usd_bridge`), error handling with `anyhow/thiserror`, integration tests, egui custom widgets.
 - **Tasks**:
   - Port/export minimal USD via the shim, hooking into the scene graph.
   - Stand up integration tests that compare exported USD against fixtures.
-  - Begin wiring viewport (wgpu) for bounding-box visual feedback.
-- **Validation**: USD file opens in `usdview` with correct PointInstancer; viewport displays 60 FPS bounding boxes.
+  - **egui UI Panels**:
+    - Scene hierarchy panel (tree view of prototypes and instances)
+    - Properties panel (transform, material assignment)
+    - Scatter controls panel (density slider, randomization seeds, preview toggle)
+  - **Simple Node Editor** (optional, can use `egui_node_graph` crate):
+    - Visual graph for scatter rules: Surface → Sample Points → Filter → Place Instances
+    - Nodes for: mesh input, point sampler, density mask, instance placer
+    - Real-time preview updates as nodes connect
+- **Validation**: USD file opens in `usdview` with correct PointInstancer; viewport displays 60 FPS with egui overlay; scatter graph produces visible instances.
 
-### Stage 7 – Advanced Rendering & GPU Path (ongoing)
+### Stage 7 – Advanced Rendering, GPU Path & Qt Migration (ongoing)
 
 - **Checklist refs**: Advanced Features §§27-29, Optimizations §§22-24, Performance Targets, GPU architecture doc.
 - **Docs**: `bif_gpu_rendering_architecture.md`, PoC Step 6, devlog GPU notes.
-- **Learning focus**: Hybrid rendering coordinator, progressive accumulation, profiling.
+- **Learning focus**: Hybrid rendering coordinator, progressive accumulation, profiling, Qt/Rust FFI.
 - **Tasks**:
   - Introduce `RenderCoordinator` state machine from GPU doc.
   - Bridge CPU renderer outputs to viewport for progressive updates.
   - Profile with `cargo flamegraph`, capture findings in devlog, and iterate.
-- **Validation**: Achieve <1s preview pass for 600×600 image; document FPS/sample rates over time.
+  - **Qt Migration** (post-PoC):
+    - Replace egui with Qt 6 / QML frontend using `cxx-qt`
+    - Native Qt viewport widget with embedded wgpu surface
+    - Qt-based node editor (Qt Node Editor or custom QGraphicsScene)
+    - Dockable panels, keyboard shortcuts, professional UX
+- **Validation**: Achieve <1s preview pass for 600×600 image; document FPS/sample rates over time. Qt prototype shows same functionality as egui version.
 
 ## Unified Viewport + Framebuffer Surface
 
-- Keep the CPU framebuffer as a first-class crate (Stage 4 deliverable). It still owns accumulation, sample counting, AOV exports, and file output, but it now also exposes a texture handle (or shared buffer) suitable for viewport presentation.
-- The viewport layer (wgpu/egui or Qt) renders manipulators, gizmos, and overlays directly atop the framebuffer image. When you orbit the camera or drag lights, the viewport requests quick preview passes that write into the same framebuffer memory, so what you see in the editor is identical to the offline output.
-- Provide a thin messaging/API boundary—e.g., the viewport drives camera transforms and enqueue render jobs, while the renderer publishes swapchain-ready images plus histograms/progress. This keeps responsibilities clear even though both sides share the final surface.
-- If you need to freeze a reference render, snapshot the framebuffer and detach it from the live viewport texture; otherwise, the default mode is a unified surface that blends interactive placement with progressive refinement.
+**Core Principle:** The 3D viewport IS the render framebuffer. There is no separate "Render View" window.
+
+- The CPU/GPU renderer writes directly to a wgpu texture that the viewport displays.
+- egui (PoC) or Qt (production) renders UI overlays (gizmos, selection outlines, scatter previews) on top of this texture.
+- When you orbit the camera, the renderer switches to low-SPP preview mode.
+- When interaction stops, samples accumulate in-place—same viewport, same texture.
+- "Render" button simply lets the accumulation run to target SPP, then optionally saves to disk.
+
+### Viewport Responsibilities:
+- Camera manipulation (orbit, pan, zoom, fly)
+- Selection highlighting and transform gizmos
+- Scatter point preview (before committing)
+- Progress overlay (samples, time, pass info)
+
+### Renderer Responsibilities:
+- Ray tracing into the shared texture
+- Sample accumulation and tone mapping
+- Mode switching (interactive ↔ progressive ↔ final)
+- AOV output (when saving to disk)
+
+### Snapshot Mode:
+- If you need to freeze a reference render while continuing to work, snapshot the current framebuffer to a separate texture.
+- This "pinned render" can be displayed in a split view or saved immediately.
 
 ## Maintenance Loop
 
