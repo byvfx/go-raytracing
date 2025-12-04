@@ -756,3 +756,111 @@ func CornellBoxLucy() (*HittableList, *Camera) {
 
 	return world, camera
 }
+
+// CornellSmoke - Cornell Box with volumetric fog/smoke boxes
+func CornellSmoke() (*HittableList, *Camera) {
+	world := NewHittableList()
+
+	// =============================================================================
+	// MATERIALS
+	// =============================================================================
+	whiteMat := NewLambertian(Color{X: 0.73, Y: 0.73, Z: 0.73})
+	redMat := NewLambertian(Color{X: 0.65, Y: 0.05, Z: 0.05})
+	greenMat := NewLambertian(Color{X: 0.12, Y: 0.45, Z: 0.15})
+	lightMat := NewDiffuseLight(NewSolidColor(Color{X: 3, Y: 3, Z: 3}))
+
+	// =============================================================================
+	// AREA LIGHT
+	// =============================================================================
+	areaLight := NewQuad(
+		Point3{X: 113, Y: 554, Z: 127},
+		Vec3{X: 330, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 305},
+		lightMat,
+	)
+	world.Add(areaLight)
+
+	// =============================================================================
+	// WALLS
+	// =============================================================================
+	// Green wall (right)
+	world.Add(NewQuad(
+		Point3{X: 555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 555, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 555},
+		greenMat,
+	))
+	// Red wall (left)
+	world.Add(NewQuad(
+		Point3{X: 0, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 555, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 555},
+		redMat,
+	))
+	// White floor
+	world.Add(NewQuad(
+		Point3{X: 0, Y: 0, Z: 0},
+		Vec3{X: 555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: 555},
+		whiteMat,
+	))
+	// White ceiling
+	world.Add(NewQuad(
+		Point3{X: 555, Y: 555, Z: 555},
+		Vec3{X: -555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 0, Z: -555},
+		whiteMat,
+	))
+	// White back wall
+	world.Add(NewQuad(
+		Point3{X: 0, Y: 0, Z: 555},
+		Vec3{X: 555, Y: 0, Z: 0},
+		Vec3{X: 0, Y: 555, Z: 0},
+		whiteMat,
+	))
+
+	// =============================================================================
+	// SMOKE BOXES
+	// =============================================================================
+	// Tall box with black smoke
+	box1 := Box(
+		Point3{X: 0, Y: 0, Z: 0},
+		Point3{X: 165, Y: 330, Z: 165},
+		whiteMat,
+	)
+	box1Xform := NewTransform().
+		SetRotationY(15).
+		SetPosition(Vec3{X: 265, Y: 0, Z: 295}).
+		Apply(box1)
+	world.Add(NewVolumeFromColor(box1Xform, 0.01, Color{X: 0, Y: 0, Z: 0}))
+
+	// Short box with white smoke
+	box2 := Box(
+		Point3{X: 0, Y: 0, Z: 0},
+		Point3{X: 165, Y: 165, Z: 165},
+		whiteMat,
+	)
+	box2Xform := NewTransform().
+		SetRotationY(-18).
+		SetPosition(Vec3{X: 130, Y: 0, Z: 65}).
+		Apply(box2)
+	world.Add(NewVolumeFromColor(box2Xform, 0.01, Color{X: 1, Y: 1, Z: 1}))
+
+	// =============================================================================
+	// CAMERA
+	// =============================================================================
+	camera := NewCameraBuilder().
+		SetResolution(600, 1.0).
+		SetQuality(150, 10).
+		SetPosition(
+			Point3{X: 278, Y: 278, Z: -800},
+			Point3{X: 278, Y: 278, Z: 0},
+			Vec3{X: 0, Y: 1, Z: 0},
+		).
+		SetLens(40, 0, 10).
+		SetBackground(Color{X: 0, Y: 0, Z: 0}).
+		AddLight(areaLight).
+		Build()
+
+	return world, camera
+}

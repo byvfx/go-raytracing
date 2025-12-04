@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	world, camera := rt.CornellBoxScene()
+	world, camera := rt.CornellSmoke()
 
 	bvh := rt.NewBVHNodeFromList(world)
 

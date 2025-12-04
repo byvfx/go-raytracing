@@ -232,6 +232,48 @@ func (dl *DiffuseLight) Emitted(u, v float64, p Point3) Color {
 }
 
 // =============================================================================
+// ISOTROPIC (FOR VOLUMES)
+// =============================================================================
+
+// Isotropic scatters light uniformly in all directions (for volumes like fog, smoke)
+type Isotropic struct {
+	tex Texture
+}
+
+// NewIsotropic creates an isotropic material from a texture
+func NewIsotropic(tex Texture) *Isotropic {
+	return &Isotropic{tex: tex}
+}
+
+// NewIsotropicFromColor creates an isotropic material from a solid color
+func NewIsotropicFromColor(albedo Color) *Isotropic {
+	return &Isotropic{tex: NewSolidColor(albedo)}
+}
+
+func (i *Isotropic) Properties() MaterialProperties {
+	return MaterialProperties{
+		isPureSpecular: false,
+		isEmissive:     false,
+		CanUseNEE:      false,
+	}
+}
+
+// Scatter scatters the ray in a random direction (uniform sphere)
+func (i *Isotropic) Scatter(rIn Ray, rec *HitRecord, attenuation *Color, scattered *Ray) bool {
+	*scattered = NewRay(rec.P, RandomUnitVector(), rIn.Time())
+	*attenuation = i.tex.Value(rec.U, rec.V, rec.P)
+	return true
+}
+
+func (i *Isotropic) PDF(wi, wo, normal Vec3) float64 {
+	return 1.0 / (4.0 * math.Pi) // Uniform sphere PDF
+}
+
+func (i *Isotropic) Emitted(u, v float64, p Point3) Color {
+	return Color{X: 0, Y: 0, Z: 0}
+}
+
+// =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
 
