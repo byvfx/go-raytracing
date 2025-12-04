@@ -486,6 +486,18 @@ func CornellBoxScene() (*HittableList, *Camera) {
 		Apply(box2)
 	world.Add(box2Xform)
 
+	// =============================================================================
+	// ENCOMPASSING FOG VOLUME
+	// =============================================================================
+	// Create a box that fills the entire Cornell box interior
+	fogBoundary := Box(
+		Point3{X: 0, Y: 0, Z: 0},
+		Point3{X: 555, Y: 555, Z: 555},
+		whiteMat, // Material doesn't matter for the boundary, it's just for the volume
+	)
+	// Very low density for subtle atmospheric fog effect
+	world.Add(NewVolumeFromColor(fogBoundary, 0.001, Color{X: 1, Y: 1, Z: 1}))
+
 	camera := NewCameraBuilder().
 		SetResolution(600, 1.0).
 		SetQuality(500, 5).
