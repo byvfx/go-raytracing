@@ -319,6 +319,7 @@ struct BucketRenderer {
 ### 29. UI (Required for PoC)
 
 #### egui Phase (PoC)
+
 - [ ] Basic egui + wgpu window setup
 - [ ] 3D viewport panel (wgpu texture display)
 - [ ] Scene hierarchy tree view
@@ -328,6 +329,7 @@ struct BucketRenderer {
 - [ ] Camera controls (orbit, pan, zoom via mouse)
 
 #### Node Editor (PoC or Early Production)
+
 - [ ] Integrate `egui_node_graph` or similar crate
 - [ ] Surface Input node (mesh selection)
 - [ ] Point Sampler node (uniform, density-based)
@@ -337,6 +339,7 @@ struct BucketRenderer {
 - [ ] Node graph serialization (save/load presets)
 
 #### Qt Migration (Production)
+
 - [ ] Qt 6 / QML frontend via `cxx-qt`
 - [ ] Native Qt viewport with embedded wgpu
 - [ ] Qt-based node editor (QGraphicsScene or QtNodes)
