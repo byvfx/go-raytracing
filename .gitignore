@@ -46,3 +46,8 @@ Thumbs.db
 *.ply
 *.stl
 *.gltf
+
+#profiling files
+*.prof
+*.profdata
+*.pprof
