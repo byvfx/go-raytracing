@@ -380,6 +380,7 @@ func (c *Camera) GetRay(i, j int) Ray {
 
 // sending out them color rays
 func (c *Camera) RayColor(r Ray, depth int, world Hittable) Color {
+	GlobalRenderStats.RayCount.Add(1)
 	return c.rayColorInternal(r, depth, world, true)
 }
 
@@ -388,6 +389,7 @@ func (c *Camera) rayColorInternal(r Ray, depth int, world Hittable, allowLightHi
 		return Color{X: 0, Y: 0, Z: 0}
 	}
 
+	GlobalRenderStats.RayCount.Add(1)
 	rec := &HitRecord{}
 
 	if !world.Hit(r, NewInterval(0.001, math.Inf(1)), rec) {

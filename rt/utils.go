@@ -71,6 +71,14 @@ func PrintRenderStats(elapsed time.Duration, width, height int) {
 	fmt.Printf("Total Pixels:    %d\n", totalPixels)
 	fmt.Printf("Pixels/Second:   %.0f\n", pixelsPerSecond)
 	fmt.Println("========================================")
+
+	// Print detailed stats if available
+	if GlobalRenderStats.RayCount.Load() > 0 {
+		PrintRenderStatsReport(GlobalRenderStats, elapsed)
+	}
+
+	// Print memory stats
+	PrintMemStats()
 }
 
 // LinearToGamma converts linear color to gamma-corrected color

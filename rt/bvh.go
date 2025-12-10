@@ -217,6 +217,8 @@ func buildBVHNode(objects []Hittable, primitives []bvhPrimitive, parallelDepth i
 }
 
 func (b *BVHNode) Hit(r Ray, rayT Interval, rec *HitRecord) bool {
+	GlobalRenderStats.BVHIntersections.Add(1)
+
 	// First check if ray hits this node's bounding box
 	if !b.bbox.Hit(r, rayT) {
 		return false

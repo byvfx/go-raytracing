@@ -272,6 +272,7 @@ func (r *BucketRenderer) renderBucketWithQuality(bucket Bucket, samplesPerPixel 
 			for sample := 0; sample < samplesPerPixel; sample++ {
 				ray := r.camera.GetRay(globalX, globalY)
 				pixelColor = pixelColor.Add(r.camera.RayColor(ray, maxDepth, r.world))
+				GlobalRenderStats.SamplesComputed.Add(1)
 			}
 
 			// Average and gamma correct
@@ -285,6 +286,8 @@ func (r *BucketRenderer) renderBucketWithQuality(bucket Bucket, samplesPerPixel 
 				B: uint8(256 * intensity.Clamp(LinearToGamma(pixelColor.Z))),
 				A: 255,
 			}
+
+			GlobalRenderStats.PixelsRendered.Add(1)
 		}
 	}
 
