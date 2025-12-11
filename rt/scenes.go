@@ -323,7 +323,7 @@ func PrimitivesScene() (*HittableList, *Camera) {
 	redMat := NewLambertian(Color{X: 0.8, Y: 0.1, Z: 0.1})
 	greenMat := NewLambertian(Color{X: 0.1, Y: 0.8, Z: 0.1})
 	blueMat := NewLambertian(Color{X: 0.1, Y: 0.1, Z: 0.8})
-	metalMat := NewMetal(Color{X: 0.7, Y: 0.7, Z: 0.7}, 0.1)
+	metalMat := NewMetal(Color{X: 1.0, Y: 1.0, Z: 1.0}, 0)
 	lightMat := NewDiffuseLight(NewSolidColor(Color{X: 1, Y: 1, Z: 1}))
 
 	checkerMat := NewLambertianTexture(NewCheckerTextureFromColors(1.0,
@@ -495,7 +495,6 @@ func CornellBoxScene() (*HittableList, *Camera) {
 		Point3{X: 555, Y: 555, Z: 555},
 		whiteMat, // Material doesn't matter for the boundary, it's just for the volume
 	)
-	// Very low density for subtle atmospheric fog effect
 	world.Add(NewVolumeFromColor(fogBoundary, 0.001, Color{X: 1, Y: 1, Z: 1}))
 
 	camera := NewCameraBuilder().
