@@ -189,6 +189,71 @@ config.SphereGridBounds.MaxA = 5
 world := rt.RandomSceneWithConfig(config)
 ```
 
+## Profiling
+
+Built-in profiling support for performance analysis using Go's `pprof` tooling.
+
+### Command-Line Flags
+
+```bash
+# Enable CPU and memory profiling
+go run . -profile
+
+# With execution tracing (concurrency analysis)
+go run . -profile -trace
+
+# Show memory statistics after render
+go run . -mem-stats
+
+# Custom profile output directory
+go run . -profile -profile-dir="my_profiles"
+
+# All flags
+go run . -help
+```
+
+### Analyzing Profiles
+
+```bash
+# Interactive CPU profile analysis
+go tool pprof profiles/cpu_*.pprof
+
+# Top functions by cumulative time
+go tool pprof -top -cum profiles/cpu_*.pprof
+
+# Memory profile (allocations)
+go tool pprof -top profiles/mem_*.pprof
+
+# Web-based visualization (opens browser)
+go tool pprof -http=:8080 profiles/cpu_*.pprof
+
+# Execution trace (concurrency, goroutines)
+go tool trace profiles/trace_*.out
+```
+
+### Running Benchmarks
+
+```bash
+# Run all benchmarks
+go test -bench=. ./rt/
+
+# Benchmark with memory allocation stats
+go test -bench=. -benchmem ./rt/
+
+# Specific benchmark
+go test -bench=BenchmarkVec3 ./rt/
+```
+
+### Collected Metrics
+
+When profiling is enabled, the following statistics are tracked:
+- **Ray count** - Total rays cast (primary + bounces)
+- **BVH intersections** - Bounding box tests performed
+- **Samples computed** - Total pixel samples
+- **Pixels rendered** - Completed pixels
+- **Memory usage** - Heap allocations, GC stats
+- **Rays/second** - Throughput metric
+
 ## Implementation Status
 
 **Ray Tracing in One Weekend:**
