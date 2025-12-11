@@ -99,10 +99,14 @@ func NewMetal(albedo Color, fuzz float64) *Metal {
 }
 
 func (m *Metal) Properties() MaterialProperties {
+	// Metals should NOT use NEE/MIS - light sampling adds incorrect diffuse appearance.
+	// Even glossy metals should use pure BRDF sampling for correct specular reflections.
+	// Only very rough metals (fuzz > 0.4) might benefit from NEE, but we disable it
+	// entirely for metals to maintain proper metallic appearance.
 	return MaterialProperties{
-		isPureSpecular: m.Fuzz < 0.001,
+		isPureSpecular: m.Fuzz < 0.1, // More generous threshold for "pure specular"
 		isEmissive:     false,
-		CanUseNEE:      m.Fuzz > 0.001,
+		CanUseNEE:      false, // Metals should never use NEE - causes diffuse appearance
 	}
 }
 
