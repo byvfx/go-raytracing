@@ -85,8 +85,8 @@ Use `bif_poc_guide.md` for bring-up details and `rust_port_learning_plan.md` for
 ## Documentation Scope Map
 
 | Doc | Scope & When to Use |
-| --- | --- |
-| `rust_port_learning_plan.md` | Stage-by-stage timeline (Stage 0-7) describing what to build first, validation gates, and how progress is measured. Start here whenever you plan the next sprint. |
+| --- | --- || `GO_API_REFERENCE.md` | **Complete API reference** for the Go raytracer. Lists every type, method, and function with Rust equivalents. Use as a lookup when porting. |
+| `RUST_CODE_PATTERNS.md` | **Copy-paste ready Rust code** for common raytracer patterns. Use when implementing features—no need to translate from Go. || `rust_port_learning_plan.md` | Stage-by-stage timeline (Stage 0-7) describing what to build first, validation gates, and how progress is measured. Start here whenever you plan the next sprint. |
 | `RUST_PORT_CHECKLIST.md` | Exhaustive task list organized by subsystems. Use it alongside the learning plan; each Stage references specific checklist sections to tick off. |
 | `bif_poc_guide.md` | Step-by-step instructions for standing up the Rust workspace (Stages 0-2) with crate scaffolding, build commands, and PoC goals. |
 | `bif_migration_guide.md` | Narrative Go→Rust migration story with code snippets and a week-by-week breakdown aligned with Stages 1-5. Reference it when translating concrete features. |
