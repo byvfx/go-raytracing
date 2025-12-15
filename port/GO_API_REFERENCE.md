@@ -290,11 +290,11 @@ pub trait Texture: Send + Sync {
 
 #### Methods
 
-| Method | Behavior |
-|--------|----------|
-| `SphereCenter(time float64) Point3` | Interpolates position for motion blur |
-| `Hit(r Ray, rayT Interval, rec *HitRecord) bool` | Quadratic intersection |
-| `BoundingBox() AABB` | Returns pre-computed bbox |
+| Method | Behavior | Notes |
+|--------|----------|---------|
+| `SphereCenter(time float64) Point3` | Interpolates position for motion blur | |
+| `Hit(r Ray, rayT Interval, rec *HitRecord) bool` | Quadratic intersection | |
+| `BoundingBox() AABB` | Returns pre-computed bbox | |
 
 #### UV Mapping
 
@@ -321,6 +321,7 @@ func getSphereUV(p Point3) (u, v float64) {
 #### Algorithm
 
 Uses **Möller-Trumbore intersection**:
+
 1. Compute edge vectors `edge1 = v1 - v0`, `edge2 = v2 - v0`
 2. Compute determinant via cross products
 3. Calculate barycentric coordinates `u, v`
@@ -466,7 +467,7 @@ Emissive material for area lights.
 
 3D procedural checker pattern.
 
-| Field | Type |
+| Field | Type | Notes |
 |-------|------|
 | `invScale` | `float64` | `1.0 / scale` |
 | `even` | `Texture` |
@@ -622,6 +623,7 @@ result := transform.Apply(obj)
 | `Scale` | `Obj Hittable`, `Factor Vec3`, `InvFactor Vec3` |
 
 Each transform:
+
 1. Transforms the incoming ray into local space
 2. Calls inner object's `Hit()`
 3. Transforms hit record back to world space
@@ -632,6 +634,8 @@ Each transform:
 ## Renderers
 
 ### ProgressiveRenderer (`rt/renderer.go`)
+
+no need to port this as-is; use as reference if needed.
 
 Scanline-based progressive rendering.
 
@@ -661,8 +665,8 @@ Parallel tile-based rendering with multi-pass progressive refinement.
 
 ### Bucket Structure
 
-| Field | Type |
-|-------|------|
+| Field | Type | Notes |
+|-------|------|-------|
 | `X, Y` | `int` | Top-left corner |
 | `Width, Height` | `int` | Tile dimensions |
 
@@ -743,6 +747,7 @@ Saves framebuffer as PNG.
 ### Render Statistics
 
 Global struct tracking:
+
 - Total rays cast
 - BVH construction time
 - Ray-AABB tests
@@ -794,25 +799,30 @@ Pre-built test scenes:
 ## Porting Priority
 
 ### Phase 1 - Foundation (Days 1-3)
+
 1. `Vec3`, `Ray`, `Interval`, `AABB`
 2. `Hittable` trait, `HitRecord`
 3. `Sphere`, `Plane` primitives
 
 ### Phase 2 - Materials (Days 4-5)
+
 1. `Material` trait
 2. `Lambertian`, `Metal`, `Dielectric`
 3. `SolidColor` texture
 
 ### Phase 3 - Acceleration (Days 6-8)
+
 1. `BVHNode`, `BVHLeaf`
 2. Parallel construction with `rayon`
 
 ### Phase 4 - Camera & Render (Days 9-12)
+
 1. `Camera` with builder
 2. Basic scanline renderer
 3. `BucketRenderer` with parallel tiles
 
 ### Phase 5 - Advanced (Week 3+)
+
 1. `Triangle`, OBJ loading
 2. All textures
 3. Transforms
