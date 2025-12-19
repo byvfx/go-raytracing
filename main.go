@@ -67,7 +67,7 @@ func main() {
 
 	// Time BVH construction
 	bvhTimer := rt.NewTimer("BVH Construction")
-	world, camera := rt.CornellBoxLucy()
+	world, camera := rt.PrimitivesScene()
 	bvh := rt.NewBVHNodeFromList(world)
 	bvhTime := bvhTimer.Stop()
 	rt.GlobalRenderStats.BVHConstructTime = bvhTime

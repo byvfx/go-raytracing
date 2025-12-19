@@ -357,7 +357,9 @@ func (r *BucketRenderer) drawRenderSettings(screen *ebiten.Image) {
 	if r.completed {
 		status = "COMPLETED"
 	} else {
-		status = fmt.Sprintf("%s | Buckets: %d/%d | Workers: %d", passName, completedBuckets, r.totalBuckets, r.numWorkers)
+		status = fmt.Sprintf("%s | Buckets: %d/%d", passName, completedBuckets, r.totalBuckets)
+		// Workers display commented out
+		// status = fmt.Sprintf("%s | Buckets: %d/%d | Workers: %d", passName, completedBuckets, r.totalBuckets, r.numWorkers)
 	}
 
 	statsText := fmt.Sprintf("%dx%d | SPP:%d | Depth:%d | Pass:%d/%d | %.1f%% | %s | %s",
