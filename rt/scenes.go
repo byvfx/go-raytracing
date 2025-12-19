@@ -1,9 +1,5 @@
 package rt
 
-import (
-	"math/rand"
-)
-
 type SceneConfig struct {
 	GroundColor      Color
 	SphereGridBounds struct{ MinA, MaxA, MinB, MaxB int }
@@ -55,11 +51,11 @@ func RandomSceneWithConfig(config SceneConfig) (*HittableList, *Camera) {
 
 	for a := config.SphereGridBounds.MinA; a < config.SphereGridBounds.MaxA; a++ {
 		for b := config.SphereGridBounds.MinB; b < config.SphereGridBounds.MaxB; b++ {
-			chooseMat := rand.Float64()
+			chooseMat := RandomDouble()
 			center := Point3{
-				X: float64(a) + 0.9*rand.Float64(),
+				X: float64(a) + 0.9*RandomDouble(),
 				Y: 0.2,
-				Z: float64(b) + 0.9*rand.Float64(),
+				Z: float64(b) + 0.9*RandomDouble(),
 			}
 
 			if center.Sub(Point3{X: 4, Y: 0.2, Z: 0}).Len() > 0.9 {
@@ -95,9 +91,9 @@ func addRandomSphere(world *HittableList, center Point3, chooseMat float64, conf
 
 	if chooseMat < lambertThreshold {
 		albedo := Color{
-			X: rand.Float64() * rand.Float64(),
-			Y: rand.Float64() * rand.Float64(),
-			Z: rand.Float64() * rand.Float64(),
+			X: RandomDouble() * RandomDouble(),
+			Y: RandomDouble() * RandomDouble(),
+			Z: RandomDouble() * RandomDouble(),
 		}
 		sphereMaterial = NewLambertian(albedo)
 		center2 := center.Add(Vec3{X: 0, Y: RandomDoubleRange(0, 0.5), Z: 0})
@@ -105,11 +101,11 @@ func addRandomSphere(world *HittableList, center Point3, chooseMat float64, conf
 	} else if chooseMat < metalThreshold {
 
 		albedo := Color{
-			X: 0.5 + rand.Float64()*0.5,
-			Y: 0.5 + rand.Float64()*0.5,
-			Z: 0.5 + rand.Float64()*0.5,
+			X: 0.5 + RandomDouble()*0.5,
+			Y: 0.5 + RandomDouble()*0.5,
+			Z: 0.5 + RandomDouble()*0.5,
 		}
-		fuzz := rand.Float64() * 0.5
+		fuzz := RandomDouble() * 0.5
 		sphereMaterial = NewMetal(albedo, fuzz)
 		world.Add(NewSphere(center, 0.2, sphereMaterial))
 	} else if chooseMat < dielectricThreshold {
@@ -389,7 +385,7 @@ func PrimitivesScene() (*HittableList, *Camera) {
 
 	camera := NewCameraBuilder().
 		SetResolution(800, 16.0/9.0).
-		SetQuality(50, 50).
+		SetQuality(100, 5).
 		SetPosition(
 			Point3{X: 0, Y: 2, Z: 10},
 			Point3{X: 0, Y: 0, Z: 0},
@@ -454,13 +450,8 @@ func CornellBoxScene() (*HittableList, *Camera) {
 		Vec3{X: 0, Y: 555, Z: 0},
 		whiteMat,
 	))
-	// Light
-	world.Add(NewQuad(
-		Point3{X: 213, Y: 554, Z: 227},
-		Vec3{X: 130, Y: 0, Z: 0},
-		Vec3{X: 0, Y: 0, Z: 105},
-		lightMat,
-	))
+	// Light already added above as areaLight
+
 	//Boxes
 	box1 := Box(
 		Point3{X: 0, Y: 0, Z: 0},
@@ -711,14 +702,20 @@ func CornellBoxLucy() (*HittableList, *Camera) {
 		whiteMat,
 	))
 
-	// Load Lucy model with multiple instances
+	// Load Lucy model ONCE and reuse with transforms (major performance optimization)
 	lucyMat := NewLambertian(Color{X: 0.9, Y: 0.9, Z: 0.9})
 
 	// Lucy bounds: [-465, -0.025, -267] to [465, 1597, 267]
 	// Scale to fit in Cornell box (height ~400 units)
 	scale := 0.15 // Smaller to fit multiple instances
 
-	// Create 10 angel instances in a grid pattern
+	// Load the mesh once and build BVH once
+	lucyMesh, err := LoadOBJ("assets/models/lucy_low.obj", lucyMat)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create 10 angel instances in a grid pattern using transform wrappers
 	positions := []struct {
 		pos Vec3
 		rot float64
@@ -735,26 +732,20 @@ func CornellBoxLucy() (*HittableList, *Camera) {
 		{Vec3{X: 200, Y: 0, Z: 350}, 60},
 	}
 
+	// Reuse the same mesh with different transforms (10x faster loading)
 	for _, inst := range positions {
-		lucy, err := LoadOBJWithTransform(
-			"assets/models/lucy_low.obj",
-			lucyMat,
-			NewTransform().
-				SetScale(Vec3{X: scale, Y: scale, Z: scale}).
-				SetRotationY(inst.rot).
-				SetPosition(inst.pos),
-		)
+		lucyInstance := NewTransform().
+			SetScale(Vec3{X: scale, Y: scale, Z: scale}).
+			SetRotationY(inst.rot).
+			SetPosition(inst.pos).
+			Apply(lucyMesh)
 
-		if err != nil {
-			panic(err)
-		}
-
-		world.Add(lucy)
+		world.Add(lucyInstance)
 	}
 
 	camera := NewCameraBuilder().
 		SetResolution(600, 1.0).
-		SetQuality(150, 12).
+		SetQuality(50, 5).
 		SetPosition(
 			Point3{X: 278, Y: 278, Z: -800},
 			Point3{X: 278, Y: 278, Z: 0},
@@ -862,7 +853,7 @@ func CornellSmoke() (*HittableList, *Camera) {
 	// =============================================================================
 	camera := NewCameraBuilder().
 		SetResolution(600, 1.0).
-		SetQuality(150, 10).
+		SetQuality(150, 5).
 		SetPosition(
 			Point3{X: 278, Y: 278, Z: -800},
 			Point3{X: 278, Y: 278, Z: 0},

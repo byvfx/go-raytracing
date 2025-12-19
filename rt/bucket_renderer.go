@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"image/png"
 	"os"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -109,14 +110,10 @@ func generateBuckets(width, height, bucketSize int) []Bucket {
 		bucketDistances[i] = bucketDist{bucket: b, dist: dist}
 	}
 
-	// Sort by distance from center (spiral out)
-	for i := 0; i < len(bucketDistances); i++ {
-		for j := i + 1; j < len(bucketDistances); j++ {
-			if bucketDistances[j].dist < bucketDistances[i].dist {
-				bucketDistances[i], bucketDistances[j] = bucketDistances[j], bucketDistances[i]
-			}
-		}
-	}
+	// Sort by distance from center (spiral out) - O(n log n)
+	sort.Slice(bucketDistances, func(i, j int) bool {
+		return bucketDistances[i].dist < bucketDistances[j].dist
+	})
 
 	// Extract sorted buckets
 	sortedBuckets := make([]Bucket, len(buckets))

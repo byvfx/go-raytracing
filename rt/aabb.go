@@ -60,45 +60,56 @@ func (box AABB) Hit(r Ray, rayT Interval) bool {
 	rayOrig := r.Origin()
 	rayDir := r.Direction()
 
-	for axis := 0; axis < 3; axis++ {
-		ax := box.AxisInterval(axis)
+	// Unrolled loop for X, Y, Z axes - avoids switch overhead in hot path
+	// X axis
+	adinv := 1.0 / rayDir.X
+	t0 := (box.X.Min - rayOrig.X) * adinv
+	t1 := (box.X.Max - rayOrig.X) * adinv
+	if adinv < 0 {
+		t0, t1 = t1, t0
+	}
+	if t0 > rayT.Min {
+		rayT.Min = t0
+	}
+	if t1 < rayT.Max {
+		rayT.Max = t1
+	}
+	if rayT.Max <= rayT.Min {
+		return false
+	}
 
-		var axisOrig, axisDir float64
-		switch axis {
-		case 0:
-			axisOrig = rayOrig.X
-			axisDir = rayDir.X
-		case 1:
-			axisOrig = rayOrig.Y
-			axisDir = rayDir.Y
-		case 2:
-			axisOrig = rayOrig.Z
-			axisDir = rayDir.Z
-		}
+	// Y axis
+	adinv = 1.0 / rayDir.Y
+	t0 = (box.Y.Min - rayOrig.Y) * adinv
+	t1 = (box.Y.Max - rayOrig.Y) * adinv
+	if adinv < 0 {
+		t0, t1 = t1, t0
+	}
+	if t0 > rayT.Min {
+		rayT.Min = t0
+	}
+	if t1 < rayT.Max {
+		rayT.Max = t1
+	}
+	if rayT.Max <= rayT.Min {
+		return false
+	}
 
-		adinv := 1.0 / axisDir
-
-		t0 := (ax.Min - axisOrig) * adinv
-		t1 := (ax.Max - axisOrig) * adinv
-
-		if t0 < t1 {
-			if t0 > rayT.Min {
-				rayT.Min = t0
-			}
-			if t1 < rayT.Max {
-				rayT.Max = t1
-			}
-		} else {
-			if t1 > rayT.Min {
-				rayT.Min = t1
-			}
-			if t0 < rayT.Max {
-				rayT.Max = t0
-			}
-		}
-		if rayT.Max <= rayT.Min {
-			return false
-		}
+	// Z axis
+	adinv = 1.0 / rayDir.Z
+	t0 = (box.Z.Min - rayOrig.Z) * adinv
+	t1 = (box.Z.Max - rayOrig.Z) * adinv
+	if adinv < 0 {
+		t0, t1 = t1, t0
+	}
+	if t0 > rayT.Min {
+		rayT.Min = t0
+	}
+	if t1 < rayT.Max {
+		rayT.Max = t1
+	}
+	if rayT.Max <= rayT.Min {
+		return false
 	}
 
 	return true

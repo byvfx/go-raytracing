@@ -228,12 +228,12 @@ func (b *BVHNode) Hit(r Ray, rayT Interval, rec *HitRecord) bool {
 	hitLeft := b.left.Hit(r, rayT, rec)
 
 	// Check right child (only up to closest hit so far)
-	hitRight := b.right.Hit(r, NewInterval(rayT.Min, func() float64 {
-		if hitLeft {
-			return rec.T
-		}
-		return rayT.Max
-	}()), rec)
+	// Avoid closure allocation by using simple conditional
+	rightMax := rayT.Max
+	if hitLeft {
+		rightMax = rec.T
+	}
+	hitRight := b.right.Hit(r, Interval{Min: rayT.Min, Max: rightMax}, rec)
 
 	return hitLeft || hitRight
 }

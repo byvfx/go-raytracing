@@ -12,6 +12,8 @@ var (
 	EmptyInterval = Interval{Min: math.Inf(1), Max: math.Inf(-1)}
 	// C++: const interval interval::universe = interval(-infinity, +infinity);
 	UniverseInterval = Interval{Min: math.Inf(-1), Max: math.Inf(1)}
+	// Pre-allocated interval for gamma clamping (avoids per-pixel allocation)
+	IntensityInterval = Interval{Min: 0.0, Max: 0.999}
 )
 
 // C++: interval(double min, double max) : min(min), max(max) {}
@@ -50,12 +52,12 @@ func (i Interval) Size() float64 {
 	return i.Max - i.Min
 }
 
-//bool contains(double x) const { return min <= x && x <= max; }
+// bool contains(double x) const { return min <= x && x <= max; }
 func (i Interval) Contains(x float64) bool {
 	return i.Min <= x && x <= i.Max
 }
 
-//bool surrounds(double x) const {
+// bool surrounds(double x) const {
 func (i Interval) Surrounds(x float64) bool {
 	return i.Min < x && x < i.Max
 }

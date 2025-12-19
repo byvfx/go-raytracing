@@ -46,6 +46,12 @@ type Camera struct {
 	defocusDiskV       Vec3
 	centerMotion       Ray
 	lookAtMotion       Ray
+
+	// Cached viewport geometry (computed once in Initialize)
+	viewportHeight float64
+	viewportWidth  float64
+	viewportU      Vec3
+	viewportV      Vec3
 }
 
 // =============================================================================
@@ -268,9 +274,12 @@ func (c *Camera) Initialize() {
 
 	h := math.Tan(theta / 2)
 
-	viewportHeight := 2 * h * c.FocusDist
+	// Cache viewport geometry for reuse in GetRay()
+	c.viewportHeight = 2 * h * c.FocusDist
+	c.viewportWidth = c.viewportHeight * (float64(c.ImageWidth) / float64(c.ImageHeight))
 
-	viewportWidth := viewportHeight * (float64(c.ImageWidth) / float64(c.ImageHeight))
+	viewportHeight := c.viewportHeight
+	viewportWidth := c.viewportWidth
 
 	if c.FreeCamera {
 		c.w = c.Forward.Neg()
@@ -328,6 +337,25 @@ func (c *Camera) GetRay(i, j int) Ray {
 	offset := c.sampleSquare()
 	rayTime := RandomDouble()
 
+	// Fast path: use cached values when camera is not moving
+	if !c.CameraMotion && !c.FreeCamera {
+		// Use pre-computed values from Initialize()
+		pixelSample := c.pixel00Loc.
+			Add(c.pixelDeltaU.Scale(float64(i) + offset.X)).
+			Add(c.pixelDeltaV.Scale(float64(j) + offset.Y))
+
+		var rayOrigin Point3
+		if c.DefocusAngle <= 0 {
+			rayOrigin = c.center
+		} else {
+			rayOrigin = c.defocusDiskSample(c.center, c.u, c.v)
+		}
+
+		rayDirection := pixelSample.Sub(rayOrigin)
+		return NewRay(rayOrigin, rayDirection, rayTime)
+	}
+
+	// Slow path: recalculate for camera motion or free camera
 	currentCenter := c.centerMotion.At(rayTime)
 	var u, v, w Vec3
 
@@ -342,13 +370,9 @@ func (c *Camera) GetRay(i, j int) Ray {
 		v = Cross(w, u)
 	}
 
-	theta := DegreesToRadians(c.Vfov)
-	h := math.Tan(theta / 2)
-	viewportHeight := 2 * h * c.FocusDist
-	viewportWidth := viewportHeight * (float64(c.ImageWidth) / float64(c.ImageHeight))
-
-	viewportU := u.Scale(viewportWidth)
-	viewportV := v.Neg().Scale(viewportHeight)
+	// Use cached viewport dimensions
+	viewportU := u.Scale(c.viewportWidth)
+	viewportV := v.Neg().Scale(c.viewportHeight)
 
 	pixelDeltaU := viewportU.Div(float64(c.ImageWidth))
 	pixelDeltaV := viewportV.Div(float64(c.ImageHeight))
@@ -586,10 +610,10 @@ func (c *Camera) writeColor(img *image.RGBA, x, y int, pixelColor Color) {
 	b = LinearToGamma(b)
 
 	// Clamp to [0, 1] and convert to [0, 255]
-	intensity := NewInterval(0.0, 0.999)
-	rByte := uint8(256 * intensity.Clamp(r))
-	gByte := uint8(256 * intensity.Clamp(g))
-	bByte := uint8(256 * intensity.Clamp(b))
+	// Using pre-allocated IntensityInterval to avoid per-pixel allocation
+	rByte := uint8(256 * IntensityInterval.Clamp(r))
+	gByte := uint8(256 * IntensityInterval.Clamp(g))
+	bByte := uint8(256 * IntensityInterval.Clamp(b))
 
 	img.SetRGBA(x, y, color.RGBA{R: rByte, G: gByte, B: bByte, A: 255})
 }
