@@ -1,4 +1,3 @@
-// TODO see why text is getting cut off at bottom of saved image
 package rt
 
 import (
@@ -142,7 +141,7 @@ func (r *ProgressiveRenderer) drawStatsToFramebuffer() {
 	tempImg := ebiten.NewImageFromImage(r.framebuffer)
 
 	opts := &text.DrawOptions{}
-	opts.GeoM.Translate(15, float64(barY+20)) // Position text in the bar
+	opts.GeoM.Translate(15, float64(barY+10)) // Position text in the bar (13px font height needs room)
 	opts.ColorScale.ScaleWithColor(textColor)
 	text.Draw(tempImg, statsText, face, opts)
 
