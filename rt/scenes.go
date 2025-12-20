@@ -320,7 +320,7 @@ func PrimitivesScene() (*HittableList, *Camera) {
 	greenMat := NewLambertian(Color{X: 0.1, Y: 0.8, Z: 0.1})
 	blueMat := NewLambertian(Color{X: 0.1, Y: 0.1, Z: 0.8})
 	metalMat := NewMetal(Color{X: 1.0, Y: 1.0, Z: 1.0}, 0)
-	lightMat := NewDiffuseLight(NewSolidColor(Color{X: 1, Y: 1, Z: 1}))
+	lightMat := NewDiffuseLight(NewSolidColor(Color{X: 2, Y: 2, Z: 2}))
 
 	checkerMat := NewLambertianTexture(NewCheckerTextureFromColors(1.0,
 		Color{X: 0.0, Y: 0.0, Z: 0.0},
@@ -385,7 +385,7 @@ func PrimitivesScene() (*HittableList, *Camera) {
 
 	camera := NewCameraBuilder().
 		SetResolution(800, 16.0/9.0).
-		SetQuality(100, 5).
+		SetQuality(300, 25).
 		SetPosition(
 			Point3{X: 0, Y: 2, Z: 10},
 			Point3{X: 0, Y: 0, Z: 0},
@@ -393,8 +393,64 @@ func PrimitivesScene() (*HittableList, *Camera) {
 		).
 		SetLens(45, 0, 10).
 		SetBackground(Color{0, 0, 0}).
-		EnableSkyGradient(false).
+		EnableSkyGradient(true).
 		AddLight(areaLight).
+		Build()
+
+	return world, camera
+}
+
+// ==================================================================================
+// HDRI Test Scene - Demonstrates HDRI environment mapping
+// ==================================================================================
+func HDRITestScene() (*HittableList, *Camera) {
+	world := NewHittableList()
+
+	// =============================================================================
+	// MATERIALS
+	// =============================================================================
+	glassMat := NewDielectric(1.5)
+	mirrorMat := NewMetal(Color{X: 1.0, Y: 1.0, Z: 1.0}, 0.0)
+	goldMat := NewMetal(Color{X: 1.0, Y: 0.84, Z: 0.0}, 0.1)
+	groundMat := NewLambertianTexture(NewCheckerTextureFromColors(0.5,
+		Color{X: 0.1, Y: 0.1, Z: 0.1},
+		Color{X: 0.9, Y: 0.9, Z: 0.9}))
+
+	// =============================================================================
+	// GROUND PLANE
+	// =============================================================================
+	world.Add(NewPlane(Point3{X: 0, Y: 0, Z: 0}, Vec3{X: 0, Y: 1, Z: 0}, groundMat))
+
+	// =============================================================================
+	// SPHERES - Glass, Mirror, and Gold to show HDRI reflections
+	// =============================================================================
+	// Center: Glass sphere
+	world.Add(NewSphere(Point3{X: 0, Y: 1, Z: 0}, 1.0, glassMat))
+
+	// Left: Mirror sphere
+	world.Add(NewSphere(Point3{X: -2.5, Y: 1, Z: 0}, 1.0, mirrorMat))
+
+	// Right: Gold sphere
+	world.Add(NewSphere(Point3{X: 2.5, Y: 1, Z: 0}, 1.0, goldMat))
+
+	// Small glass spheres in front
+	world.Add(NewSphere(Point3{X: -1.2, Y: 0.4, Z: 2}, 0.4, glassMat))
+	world.Add(NewSphere(Point3{X: 1.2, Y: 0.4, Z: 2}, 0.4, glassMat))
+
+	// =============================================================================
+	// CAMERA with HDRI Environment
+	// =============================================================================
+	camera := NewCameraBuilder().
+		SetResolution(800, 16.0/9.0).
+		SetQuality(200, 20).
+		SetPosition(
+			Point3{X: 0, Y: 2.5, Z: 8},
+			Point3{X: 0, Y: 1, Z: 0},
+			Vec3{X: 0, Y: 1, Z: 0},
+		).
+		SetLens(40, 0, 10).
+		SetEnvironmentMap("assets/hdri/abandoned_hall_01_1k.hdr"). // Load HDRI environment
+		SetEnvironmentRotation(0).                                 // Adjust rotation as needed
 		Build()
 
 	return world, camera

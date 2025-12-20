@@ -35,6 +35,7 @@ type Camera struct {
 	Background      Color
 	UseSkyGradient  bool
 	Lights          []Hittable
+	Environment     *HDRIEnvironment // HDRI environment map
 
 	pixelsSamplesScale float64
 	center             Point3
@@ -237,6 +238,29 @@ func (c *Camera) EnableSkyGradient(enable bool) *Camera {
 	c.UseSkyGradient = enable
 	return c
 }
+
+// SetEnvironmentMap sets an HDRI environment map for realistic reflections and lighting
+func (c *Camera) SetEnvironmentMap(filename string) *Camera {
+	c.Environment = NewHDRIEnvironment(filename)
+	return c
+}
+
+// SetEnvironmentRotation rotates the HDRI environment map (in degrees)
+func (c *Camera) SetEnvironmentRotation(degrees float64) *Camera {
+	if c.Environment != nil {
+		c.Environment.SetRotation(degrees)
+	}
+	return c
+}
+
+// DisableEnvironmentImportanceSampling disables importance sampling for HDRI (for debugging)
+func (c *Camera) DisableEnvironmentImportanceSampling() *Camera {
+	if c.Environment != nil {
+		c.Environment.DisableImportanceSampling()
+	}
+	return c
+}
+
 func (c *Camera) AddLight(light Hittable) *Camera {
 	c.Lights = append(c.Lights, light)
 	return c
@@ -417,6 +441,10 @@ func (c *Camera) rayColorInternal(r Ray, depth int, world Hittable, allowLightHi
 	rec := &HitRecord{}
 
 	if !world.Hit(r, NewInterval(0.001, math.Inf(1)), rec) {
+		// Check HDRI environment first
+		if c.Environment != nil && c.Environment.IsValid() {
+			return c.Environment.Sample(r.Direction())
+		}
 		if c.UseSkyGradient {
 			return c.SkyGradient(r)
 		}
@@ -498,10 +526,78 @@ func (c *Camera) sampleLightMIS(
 	world Hittable, lightIdx int,
 	attenuation Color, pdfEval PDFEvaluator,
 ) Color {
-	if lightIdx >= len(c.Lights) {
+	var totalContribution Color
+
+	// ==========================================================================
+	// HDRI ENVIRONMENT SAMPLING
+	// ==========================================================================
+	if c.Environment != nil && c.Environment.IsValid() && c.Environment.useImportanceSampling {
+		hdriContrib := c.sampleHDRILight(hitPoint, hitNormal, rayDirection, world, attenuation, pdfEval)
+		totalContribution = totalContribution.Add(hdriContrib)
+	}
+
+	// ==========================================================================
+	// AREA LIGHT SAMPLING
+	// ==========================================================================
+	if len(c.Lights) > 0 && lightIdx < len(c.Lights) {
+		areaContrib := c.sampleAreaLight(hitPoint, hitNormal, rayDirection, world, lightIdx, attenuation, pdfEval)
+		totalContribution = totalContribution.Add(areaContrib)
+	}
+
+	return totalContribution
+}
+
+// sampleHDRILight samples the HDRI environment map for direct lighting
+func (c *Camera) sampleHDRILight(
+	hitPoint Point3, hitNormal Vec3, rayDirection Vec3,
+	world Hittable, attenuation Color, pdfEval PDFEvaluator,
+) Color {
+	// Sample direction from HDRI using importance sampling
+	lightDir, emission, pdfHDRI := c.Environment.SampleDirection()
+
+	// Check if light is on the same side as surface normal
+	cosTheta := Dot(hitNormal, lightDir)
+	if cosTheta <= 0 {
 		return Color{X: 0, Y: 0, Z: 0}
 	}
 
+	// Shadow ray test - check if anything blocks the path to infinity
+	shadowRay := NewRay(hitPoint, lightDir, 0)
+	shadowRec := &HitRecord{}
+
+	if world.Hit(shadowRay, NewInterval(0.001, math.Inf(1)), shadowRec) {
+		// Something is blocking the environment
+		return Color{X: 0, Y: 0, Z: 0}
+	}
+
+	// Calculate BRDF PDF
+	wi := rayDirection.Neg().Unit()
+	wo := lightDir
+	pdfBRDF := pdfEval.PDF(wi, wo, hitNormal)
+
+	// MIS weight using balance heuristic
+	weight := pdfHDRI / (pdfHDRI + pdfBRDF)
+
+	// Light contribution with MIS weighting
+	// For environment lights: L = emission * cos(theta) / pdf * weight
+	contribution := emission.Scale(cosTheta / pdfHDRI * weight)
+	contribution = contribution.Mult(attenuation)
+
+	// Clamp to prevent fireflies
+	maxComponent := 20.0
+	contribution.X = math.Min(contribution.X, maxComponent)
+	contribution.Y = math.Min(contribution.Y, maxComponent)
+	contribution.Z = math.Min(contribution.Z, maxComponent)
+
+	return contribution
+}
+
+// sampleAreaLight samples an area light for direct lighting (original implementation)
+func (c *Camera) sampleAreaLight(
+	hitPoint Point3, hitNormal Vec3, rayDirection Vec3,
+	world Hittable, lightIdx int,
+	attenuation Color, pdfEval PDFEvaluator,
+) Color {
 	light := c.Lights[lightIdx]
 	lightQuad, ok := light.(*Quad)
 	if !ok {
