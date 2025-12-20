@@ -450,7 +450,8 @@ func HDRITestScene() (*HittableList, *Camera) {
 		).
 		SetLens(40, 0, 10).
 		SetEnvironmentMap("assets/hdri/abandoned_hall_01_1k.hdr"). // Load HDRI environment
-		SetEnvironmentRotation(0).                                 // Adjust rotation as needed
+		SetEnvironmentRotation(0).
+		SetPhantomHDRI(true). // Adjust rotation as needed
 		Build()
 
 	return world, camera

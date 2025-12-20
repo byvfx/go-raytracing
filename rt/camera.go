@@ -34,6 +34,7 @@ type Camera struct {
 	Forward         Vec3
 	Background      Color
 	UseSkyGradient  bool
+	PhantomHDRI     bool // If true, HDRI invisible to primary rays (camera sees black)
 	Lights          []Hittable
 	Environment     *HDRIEnvironment // HDRI environment map
 
@@ -261,6 +262,13 @@ func (c *Camera) DisableEnvironmentImportanceSampling() *Camera {
 	return c
 }
 
+// SetPhantomHDRI makes the HDRI invisible to primary rays (camera sees black background)
+// while still allowing the HDRI to light the scene and appear in reflections/refractions
+func (c *Camera) SetPhantomHDRI(phantom bool) *Camera {
+	c.PhantomHDRI = phantom
+	return c
+}
+
 func (c *Camera) AddLight(light Hittable) *Camera {
 	c.Lights = append(c.Lights, light)
 	return c
@@ -443,6 +451,12 @@ func (c *Camera) rayColorInternal(r Ray, depth int, world Hittable, allowLightHi
 	if !world.Hit(r, NewInterval(0.001, math.Inf(1)), rec) {
 		// Check HDRI environment first
 		if c.Environment != nil && c.Environment.IsValid() {
+			// If phantom mode is enabled, primary rays see black instead of HDRI
+			// Secondary rays (reflections/refractions) still see the HDRI
+			isPrimaryRay := (depth == c.MaxDepth)
+			if c.PhantomHDRI && isPrimaryRay {
+				return Color{X: 0, Y: 0, Z: 0}
+			}
 			return c.Environment.Sample(r.Direction())
 		}
 		if c.UseSkyGradient {
