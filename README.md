@@ -136,6 +136,8 @@ Predefined scenes:
 - `HDRITestScene()` - Glass/metal spheres lit by HDRI environment
 - `CornellSmoke()` - Cornell box with volumetric fog/smoke boxes
 
+Scene flag keys: `hdri-test`, `random`, `checkered`, `simple`, `perlin`, `earth`, `quads`, `cornell`, `cornell-glossy`, `cornell-lucy`, `cornell-smoke`, `glossy-metal`, `primitives`.
+
 `SceneConfig` allows control over material probabilities, motion blur per material, grid bounds, etc.
 
 ## Usage
@@ -155,7 +157,7 @@ renderer := rt.NewBucketRenderer(camera, bvh)
 ebiten.RunGame(renderer)
 ```
 
-Default `go run main.go` uses `HDRITestScene()` (glass + metals under HDRI). Swap to any scene via `world, camera := rt.SomeScene()` in `main.go`.
+Default `go run main.go` uses `-scene hdri-test` (glass + metals under HDRI). Swap scenes via the `-scene` flag, or by calling `world, camera := rt.SomeScene()` in `main.go`.
 
 ```go
 // Load OBJ mesh
@@ -227,6 +229,7 @@ go run . -help
 | -trace | Enable execution trace (requires -profile) | false |
 | -profile-dir | Profile output directory | profiles |
 | -mem-stats | Print Go memory stats after render | false |
+| -scene | Choose scene (see list above) | hdri-test |
 
 ### Quick CLI Examples
 
@@ -239,6 +242,9 @@ go run . -profile -profile-dir="profiles/run1" -mem-stats
 
 # Add block profiling and execution trace
 go run . -profile -block-profile -trace -profile-dir="profiles/trace_run"
+
+# Switch scenes (Cornell with smoke volume)
+go run . -scene cornell-smoke
 ```
 
 ### Analyzing Profiles
