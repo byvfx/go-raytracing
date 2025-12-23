@@ -36,6 +36,7 @@ Renders to window with progressive scanline display. Saves final image as `image
 - Adjustable field of view (`Vfov`)
 - Depth of field (defocus blur via `DefocusAngle`, `FocusDist`)
 - Camera motion blur support
+- HDRI environment maps with rotation, optional phantom background, and toggleable importance sampling (works with MIS/NEE)
 
 **Presets:**
 
@@ -112,6 +113,7 @@ bvh := rt.NewBVHNodeFromList(world)
 - **Multiple Importance Sampling (MIS)** - Optimal combination of light sampling (NEE) and BRDF sampling using balance heuristic
 - **Next Event Estimation (NEE)** - Direct light sampling for reduced noise
 - **PDF-based Sampling** - Importance sampling for lights, BRDF, and mixed strategies
+- HDRI environment lighting with luminance-weighted sampling
 - **Area lights** - Quad-based emissive surfaces
 - **Light registration** - Camera tracks lights for importance sampling
 - **Shadow rays** - Visibility testing with proper PDF weighting
@@ -131,6 +133,8 @@ Predefined scenes:
 - `CornellBoxLucy()` - Cornell Box with Lucy statue mesh (280K triangles)
 - `GlossyMetalTest()` - Three spheres with varying roughness
 - `PrimitivesScene()` - Scene showcasing various primitives
+- `HDRITestScene()` - Glass/metal spheres lit by HDRI environment
+- `CornellSmoke()` - Cornell box with volumetric fog/smoke boxes
 
 `SceneConfig` allows control over material probabilities, motion blur per material, grid bounds, etc.
 
@@ -150,6 +154,8 @@ camera.Initialize()
 renderer := rt.NewBucketRenderer(camera, bvh)
 ebiten.RunGame(renderer)
 ```
+
+Default `go run main.go` uses `HDRITestScene()` (glass + metals under HDRI). Swap to any scene via `world, camera := rt.SomeScene()` in `main.go`.
 
 ```go
 // Load OBJ mesh
@@ -212,6 +218,29 @@ go run . -profile -profile-dir="my_profiles"
 go run . -help
 ```
 
+| Flag | Purpose | Default |
+| --- | --- | --- |
+| -profile | Enable profiling bundle | false |
+| -cpu-profile | Capture CPU profile (requires -profile) | true |
+| -mem-profile | Capture heap profile (requires -profile) | true |
+| -block-profile | Capture goroutine blocking profile (requires -profile) | false |
+| -trace | Enable execution trace (requires -profile) | false |
+| -profile-dir | Profile output directory | profiles |
+| -mem-stats | Print Go memory stats after render | false |
+
+### Quick CLI Examples
+
+```bash
+# Build and run
+go run .
+
+# Profile CPU + heap, print mem stats, store profiles in custom dir
+go run . -profile -profile-dir="profiles/run1" -mem-stats
+
+# Add block profiling and execution trace
+go run . -profile -block-profile -trace -profile-dir="profiles/trace_run"
+```
+
 ### Analyzing Profiles
 
 ```bash
@@ -247,6 +276,7 @@ go test -bench=BenchmarkVec3 ./rt/
 ### Collected Metrics
 
 When profiling is enabled, the following statistics are tracked:
+
 - **Ray count** - Total rays cast (primary + bounces)
 - **BVH intersections** - Bounding box tests performed
 - **Samples computed** - Total pixel samples
@@ -279,7 +309,7 @@ When profiling is enabled, the following statistics are tracked:
 - [x] Lights (emissive materials + NEE)
 - [x] Cornell Box scene
 - [x] Instances (translation/rotation/scale)
-- [ ] Volumes (fog/smoke)
+- [x] Volumes (fog/smoke)
 
 **Additional:**
 
@@ -293,6 +323,12 @@ When profiling is enabled, the following statistics are tracked:
 - [x] Transform system with SRT ordering
 - [x] Next Event Estimation (NEE) for direct lighting
 - [x] Preset scenes with cameras
+
+## Limitations / TODO
+
+- Investigate MIS/NEE interaction on metal reflections (see main TODO)
+- Adaptive sampling for `Camera.RayColor` planned
+- Noise/texturing tweaks (turbulence variants, clamp choices) under review
 
 ## Resources
 
