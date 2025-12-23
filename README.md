@@ -330,12 +330,6 @@ When profiling is enabled, the following statistics are tracked:
 - [x] Next Event Estimation (NEE) for direct lighting
 - [x] Preset scenes with cameras
 
-## Limitations / TODO
-
-- Investigate MIS/NEE interaction on metal reflections (see main TODO)
-- Adaptive sampling for `Camera.RayColor` planned
-- Noise/texturing tweaks (turbulence variants, clamp choices) under review
-
 ## Resources
 
 - [Ray Tracing in One Weekend](https://raytracing.github.io/books/RayTracingInOneWeekend.html)
