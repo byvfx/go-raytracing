@@ -23,7 +23,7 @@ Renders to window with progressive scanline display. Saves final image as `image
 
 ### Rendering
 
-- **Parallel bucket rendering** - V-Ray style tile-based rendering with multi-core CPU utilization (4-8x speedup)
+- **Parallel bucket rendering** - Bucket rendering with multi-core CPU utilization (4-8x speedup)
 - **Progressive multi-pass rendering** - Preview (1 SPP) → Refining (25% SPP) → Final (full SPP)
 - **Spiral bucket ordering** - Center-out rendering for better visual feedback
 - Anti-aliasing via multi-sampling (configurable samples/pixel)
