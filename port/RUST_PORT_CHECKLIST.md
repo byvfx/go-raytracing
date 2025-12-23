@@ -442,3 +442,10 @@ src/
 - Keep unsafe code minimal and well-documented
 - Use `cargo clippy` for linting
 - Use `cargo fmt` for consistent formatting
+
+## Profiling Notes (Go Reference)
+
+- Go CPU hotspots: BVH traversal dominates (up to ~82% flat in `BVHNode::hit` on triangle mesh scenes); AABB slab test is the next few percent; shading recursion is secondary on real-geo scenes.
+- Go alloc hotspots: `Camera::rayColorInternal` and `sampleAreaLight` account for most cumulative allocations; per-call heap churn drives GC, not live heap size.
+- Go block profile: channel recv/send/select overhead shows idle time between buckets; consider work-stealing or per-thread queues in Rust.
+- Rust targets: reuse per-thread scratch (hit records, rays, RNG samples) to cut allocations; prefer packed/SoA triangle data to reduce BVH traversal cost.
