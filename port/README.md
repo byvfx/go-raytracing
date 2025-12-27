@@ -1,99 +1,12 @@
-# BIF - Modern Scene Assembler & Renderer
+# BIF - Scene Assembler & Renderer
 
-BIF is a Clarisse-inspired scene assembler and renderer built in Rust, focusing on massive scene scalability through instancing and non-destructive USD workflows.
+Production VFX scene assembler and renderer inspired by Isotropix Clarisse.
 
-## Project Status
-
-Currently migrating from a feature-complete Go raytracer to a production Rust architecture.
-
-### Completed (Go Implementation)
-
-- Path tracer with multiple importance sampling
-- BVH acceleration structure  
-- Complete primitive library (sphere, plane, quad, triangle, disk, box, pyramid)
-- Material system (diffuse, metal, dielectric, emissive)
-- Texture support (procedural and image-based)
-- Camera with depth of field and motion blur
-- Next Event Estimation for direct lighting
-- Progressive rendering
-
-### In Progress (Rust Migration)
-
-- Core math library port
-- Scene graph with instancing
-- egui UI with 3D viewport (viewport = framebuffer)
-- Node-based scatter system for instance placement
-- USD authoring via C++ shim (optional)
-- Qt migration path for production UI
-
-## Repository Structure
-
-### Current Go Repository (`go-raytracing/`)
-
-```text
-go-raytracing/
-├── main.go                # Entry point for the Go raytracer
-├── go.mod / go.sum        # Go module definition
-├── assets/                # Shared textures/models
-│   ├── images/
-│   └── models/
-├── rt/                    # Production Go path tracer (reference implementation)
-├── devlog/                # Daily logs and experiment notes
-├── RUST_PORT_CHECKLIST.md # Root-level alias for quick access
-└── port/                  # Rust migration plans (this folder)
-    ├── README.md
-    ├── RUST_PORT_CHECKLIST.md
-    ├── rust_port_learning_plan.md
-    ├── bif_migration_guide.md
-    ├── bif_poc_guide.md
-    └── bif_gpu_rendering_architecture.md
-```
-
-This structure keeps the feature-complete Go renderer available as the ground truth while you build Rust scaffolding inside `port/`.
-
-### Target Rust Workspace (`bif/`)
-
-When you spin up the standalone Rust workspace (see `bif_poc_guide.md` Step 1), the layout will look like:
-
-```text
-bif/
-├── README.md           # Top-level vision & roadmap
-├── Cargo.toml          # Rust workspace manifest
-├── CMakeLists.txt      # Qt build (post-PoC)
-├── cpp/                # C++ components (USD/MaterialX bridges)
-│   └── shims/
-│       └── usd_shim/
-├── crates/
-│   ├── app/            # Main application + egui UI (Step 7)
-│   ├── scene/          # Scene graph & instances (Step 2)
-│   ├── renderer/       # CPU path tracer (Step 5)
-│   ├── viewport/       # wgpu viewport = framebuffer (Step 6)
-│   ├── scatter/        # Point generation & instance placement (Step 3b)
-│   ├── io_gltf/        # glTF loader (Step 3)
-│   └── usd_bridge/     # USD FFI wrapper (Step 4, optional)
-└── docs/
-    ├── bif_poc_guide.md
-    ├── bif_migration_guide.md
-    ├── bif_gpu_rendering_architecture.md
-    └── rust_port_learning_plan.md
-```
-
-> **Viewport = Framebuffer**: The `viewport` crate displays render output directly. There is no separate \"Render View\"—the 3D viewport IS where rendering happens. Samples accumulate in-place as you work.
-
-Use `bif_poc_guide.md` for bring-up details and `rust_port_learning_plan.md` for the staged learning workflow that ties back to the checklist.
-
-## Documentation Scope Map
-
-| Doc | Scope & When to Use |
-| --- | --- || `GO_API_REFERENCE.md` | **Complete API reference** for the Go raytracer. Lists every type, method, and function with Rust equivalents. Use as a lookup when porting. |
-| `RUST_CODE_PATTERNS.md` | **Copy-paste ready Rust code** for common raytracer patterns. Use when implementing features—no need to translate from Go. || `rust_port_learning_plan.md` | Stage-by-stage timeline (Stage 0-7) describing what to build first, validation gates, and how progress is measured. Start here whenever you plan the next sprint. |
-| `RUST_PORT_CHECKLIST.md` | Exhaustive task list organized by subsystems. Use it alongside the learning plan; each Stage references specific checklist sections to tick off. |
-| `bif_poc_guide.md` | Step-by-step instructions for standing up the Rust workspace (Stages 0-2) with crate scaffolding, build commands, and PoC goals. |
-| `bif_migration_guide.md` | Narrative Go→Rust migration story with code snippets and a week-by-week breakdown aligned with Stages 1-5. Reference it when translating concrete features. |
-| `bif_gpu_rendering_architecture.md` | Future-looking GPU/hybrid roadmap covering Stage 7+ work (progressive viewport, coordinator). Review after CPU parity is achieved. |
-| `devlog/` entries | Chronological decisions, metrics, and experiment logs. Update after each stage to keep history synced with the checklist. |
-
-This alignment ensures every document answers a specific question (what, how, or when) without contradicting the others.
+**Core Focus:**
+- Massive instancing (10K-1M instances)
+- USD-compatible workflows
+- Dual rendering (GPU viewport + CPU path tracer)
+- Non-destructive layer-based editing
 
 ## Quick Start
 
@@ -106,126 +19,101 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 # System dependencies (Ubuntu/Debian)
 sudo apt-get install cmake pkg-config libssl-dev python3-dev
 
-# USD (choose one)
-# Option 1: Pre-built from NVIDIA
-wget https://developer.nvidia.com/usd-22-11-linux-python-39
-
-# Option 2: vcpkg
-vcpkg install usd
+# USD (optional, for later phases)
+# Pre-built: https://developer.nvidia.com/usd-downloads
+# Or via vcpkg: vcpkg install usd
 ```
 
 ### Build & Run
 
 ```bash
 # Clone repository
-git clone https://github.com/byvfx/bif.git
+git clone https://github.com/yourusername/bif.git
 cd bif
 
-# Build Rust components
+# Build Rust workspace
 cargo build --release
 
-# Run proof of concept
+# Run application
 cargo run --release --bin bif
 ```
 
-## Development Roadmap
+## Documentation
 
-### Phase 1: Core Migration (Current)
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Design decisions, core principles, material/USD integration
+- **[GETTING_STARTED.md](docs/GETTING_STARTED.md)** - Step-by-step implementation guide with milestones
+- **[REFERENCE.md](docs/REFERENCE.md)** - Detailed task checklist and code patterns
+- **[claude.md](docs/claude.md)** - AI assistant instructions for this project
 
-- [ ] Project structure setup
-- [ ] Math library port from Go
-- [ ] Basic scene representation
-- [ ] Simple path tracer
+## Current Status
 
-### Phase 2: UI & Viewport (PoC)
+**Phase:** Porting Go raytracer to Rust foundation
 
-- [ ] egui window with wgpu backend
-- [ ] 3D viewport that IS the framebuffer
-- [ ] Scene hierarchy panel
-- [ ] Properties panel (transforms, materials)
-- [ ] Scatter controls panel
+**Completed (Go Implementation):**
+- Path tracer with multiple importance sampling
+- BVH acceleration
+- Materials: Lambertian, Metal, Dielectric, Emissive
+- IBL with cosine-weighted sampling
+- Next Event Estimation
+- Camera with DOF and motion blur
 
-### Phase 3: Scatter System
+**In Progress (Rust):**
+- Core math library (Vec3, Ray, AABB)
+- Scene graph with prototype/instance architecture
+- egui + wgpu viewport
+- CPU path tracer port
 
-- [ ] Surface point sampling
-- [ ] Instance placement from points
-- [ ] Simple node editor (egui_node_graph)
-- [ ] Filter nodes (slope, height, random)
-- [ ] Real-time scatter preview
+## Repository Structure
 
-### Phase 4: Scene Assembly
-
-- [ ] USD authoring support
-- [ ] Instance management
-- [ ] Layer system
-- [ ] Save/load scatter presets
-
-### Phase 5: Production Renderer
-
-- [ ] Port full material system
-- [ ] Texture pipeline (TX/OIIO)
-- [ ] Progressive refinement in viewport
-- [ ] Denoising (OIDN)
-
-### Phase 6: Qt Migration (Production UI)
-
-- [ ] Qt 6 / QML frontend via cxx-qt
-- [ ] Native Qt viewport with embedded wgpu
-- [ ] Professional docking/panels
-- [ ] Qt-based node editor
-- [ ] Keyboard shortcuts and polish
-
-### Phase 7: Advanced Features
-
-- [ ] GPU acceleration (wgpu/OptiX)
-- [ ] Hydra render delegate
-- [ ] Python scripting
-- [ ] Network rendering
+```
+bif/
+├── README.md
+├── docs/
+│   ├── ARCHITECTURE.md      # Design & decisions
+│   ├── GETTING_STARTED.md   # Implementation guide
+│   ├── REFERENCE.md         # Task checklist
+│   └── claude.md            # AI instructions
+├── crates/
+│   ├── bif_math/           # Vec3, Ray, AABB
+│   ├── bif_scene/          # Scene graph, instances, layers
+│   ├── bif_renderer/       # CPU path tracer
+│   ├── bif_viewport/       # GPU viewport (wgpu)
+│   ├── bif_materials/      # Material system
+│   ├── bif_io/             # glTF, image loading
+│   └── bif_app/            # Main application (egui UI)
+├── cpp/                    # C++ components (USD/MaterialX, later)
+│   └── usd_bridge/
+└── assets/                 # Test scenes, HDRIs
+```
 
 ## UI Development Path
 
-**PoC Phase (egui):**
-- Pure Rust, immediate-mode UI
-- Fast iteration, single language
-- `egui_node_graph` for visual scatter editing
-- Good enough for workflow validation
+**PoC Phase (Current):** egui + wgpu
+- Pure Rust, fast iteration
+- Validate workflow and architecture
+- Good enough for development
 
-**Production Phase (Qt 6):**
-- Professional look and feel
-- Mature node editor libraries
-- Dockable panels, keyboard shortcuts
-- Industry-standard UX patterns
+**Production Phase (Future):** Qt 6
+- Professional UI framework
+- Industry-standard features
+- Docking, menus, shortcuts
 
-## Design Principles
-
-1. **Everything is an instance** - Never expand geometry, only reference prototypes
-2. **Non-destructive workflow** - All edits are layers that can be toggled/reordered
-3. **Lazy evaluation** - Only compute what's needed for the current view
-4. **USD-native** - All operations author USD, ensuring pipeline compatibility
-
-## Performance Targets
-
-- 10K instances: < 500ms scene creation
-- 100K instances: < 5s USD export
-- 1M instances: < 60MB memory overhead
-- Interactive viewport: 60 FPS with bounding boxes
-- Progressive render: First pixels in < 1s
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
 ## Contributing
 
-This project is in early development. Contributions welcome, especially in:
-
+Project is in early development. Contributions welcome in:
 - Rust performance optimization
-- USD pipeline integration
-- Qt UI development
-- GPU compute shaders
+- USD/MaterialX integration
+- GPU rendering (wgpu compute)
+- Qt UI development (future)
 
 ## License
 
-MIT (pending final decision)
+MIT
 
 ## Acknowledgments
 
 - Inspired by Isotropix Clarisse
 - Based on "Ray Tracing in One Weekend" series
-- Built with USD, MaterialX, and OpenImageIO
+- Built with Rust, wgpu, USD, MaterialX
